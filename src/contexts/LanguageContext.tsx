@@ -1,7 +1,6 @@
+import React, { createContext, useState, useContext, ReactNode } from 'react';
 
-import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
-
-type Language = 'english' | 'tamil';
+type Language = 'english' | 'tamil' | 'telugu' | 'kannada' | 'malayalam' | 'hindi';
 
 interface LanguageContextType {
   language: Language;
@@ -20,6 +19,10 @@ const translations = {
     'select_language': 'Select your language',
     'english': 'English',
     'tamil': 'Tamil',
+    'telugu': 'Telugu',
+    'kannada': 'Kannada',
+    'malayalam': 'Malayalam',
+    'hindi': 'Hindi',
     'continue': 'Continue',
     'back': 'Back',
     'select_role': 'I am a...',
@@ -82,6 +85,10 @@ const translations = {
     'select_language': 'உங்கள் மொழியைத் தேர்ந்தெடுக்கவும்',
     'english': 'ஆங்கிலம்',
     'tamil': 'தமிழ்',
+    'telugu': 'தெலுங்கு',
+    'kannada': 'கன்னடம்',
+    'malayalam': 'மலையாளம்',
+    'hindi': 'இந்தி',
     'continue': 'தொடரவும்',
     'back': 'பின்னால்',
     'select_role': 'நான் ஒரு...',
@@ -138,6 +145,83 @@ const translations = {
     'cancel': 'ரத்துசெய்',
     'logout': 'வெளியேறு',
     'admin': 'நிர்வாகி'
+  },
+  telugu: {
+    'welcome': 'QuickFix కి స్వాగతం',
+    'select_language': 'మీ భాషను ఎంచుకోండి',
+    'english': 'ఆంగ్లం',
+    'tamil': 'తమిళం',
+    'telugu': 'తెలుగు',
+    'kannada': 'కన్నడ',
+    'malayalam': 'మలయాళం',
+    'hindi': 'హిందీ',
+    'continue': 'కొనసాగించు',
+    'back': 'వెనుకకు',
+    'select_role': 'నేను ఒక...',
+    'customer': 'కస్టమర్',
+    'worker': 'వర్కర్',
+    'customer_description': 'మీ సేవా అవసరాలకు నైపుణ్యం ఉన్న నిపుణులను కనుగొనండి',
+    'worker_description': 'మీ నైపుణ్యాలను మరియు సేవలను వినియోగదారులకు అందించండి',
+    'phone_verification': 'ఫోన్ ధ్రువీకరణ',
+    'enter_phone': 'మీ ఫోన్ నంబర్‌ని నమోదు చేయండి',
+    'send_otp': 'OTP పంపండి',
+    'verify_otp': 'OTP ధృవీకరించండి',
+    'enter_otp': 'మీ ఫోన్‌కి పంపిన OTPని నమోదు చేయండి',
+    'do_it_later': 'తర్వాత చేయండి'
+  },
+  kannada: {
+    'welcome': 'QuickFix ಗೆ ಸುಸ್ವಾಗತ',
+    'select_language': 'ನಿಮ್ಮ ಭಾಷೆಯನ್ನು ಆಯ್ಕೆಮಾಡಿ',
+    'english': 'ಇಂಗ್ಲಿಷ್',
+    'tamil': 'ತಮಿಳು',
+    'telugu': 'తೆಲುಗು',
+    'kannada': 'ಕನ್ನಡ',
+    'malayalam': 'ಮಲಯಾಳಂ',
+    'hindi': 'ಹಿಂದಿ',
+    'continue': 'ಮುಂದುವರಿಸಿ',
+    'back': 'ಹಿಂದೆ',
+    'select_role': 'ನಾನು...',
+    'customer': 'ಗ್ರಾಹಕ',
+    'worker': 'ಕೆಲಸಗಾರ',
+    'customer_description': 'ನಿಮ್ಮ ಸೇವೆಯ ಅಗತ್ಯಗಳಿಗಾಗಿ ನುರಿತ ವೃತ್ತಿಪರರನ್ನು ಹುಡುಕಿ',
+    'phone_verification': 'ಫೋನ್ ಪರಿಶೀಲನೆ',
+    'enter_phone': 'ನಿಮ್ಮ ಫೋನ್ ಸಂಖ್ಯೆಯನ್ನು ನಮೂದಿಸಿ'
+  },
+  malayalam: {
+    'welcome': 'QuickFix ലേക്ക് സ്വാഗതം',
+    'select_language': 'നിങ്ങളുടെ ഭാഷ തിരഞ്ഞെടുക്കുക',
+    'english': 'ഇംഗ്ലീഷ്',
+    'tamil': 'തമിഴ്',
+    'telugu': 'തെലുങ്ക്',
+    'kannada': 'കന്നഡ',
+    'malayalam': 'മലയാളം',
+    'hindi': 'ഹിന്ദി',
+    'continue': 'തുടരുക',
+    'back': 'തിരികെ',
+    'select_role': 'ഞാൻ ഒരു...',
+    'customer': 'ഉപഭോക്താവ്',
+    'worker': 'തൊഴിലാളി',
+    'phone_verification': 'ഫോൺ പരിശോധന',
+    'enter_phone': 'നിങ്ങളുടെ ഫോൺ നമ്പർ നൽകുക'
+  },
+  hindi: {
+    'welcome': 'QuickFix में आपका स्वागत है',
+    'select_language': 'अपनी भाषा चुनें',
+    'english': 'अंग्रेज़ी',
+    'tamil': 'तमिल',
+    'telugu': 'तेलुगू',
+    'kannada': 'कन्नड़',
+    'malayalam': 'मलयालम',
+    'hindi': 'हिंदी',
+    'continue': 'जारी रखें',
+    'back': 'वापस',
+    'select_role': 'मैं एक...',
+    'customer': 'ग्राहक',
+    'worker': 'कर्मचारी', 
+    'customer_description': 'अपनी सेवा आवश्यकताओं के लिए कुशल पेशेवरों को खोजें',
+    'worker_description': 'अपने कौशल और सेवाएं ग्राहकों को प्रदान करें',
+    'phone_verification': 'फोन सत्यापन',
+    'enter_phone': 'अपना फोन नंबर दर्ज करें'
   }
 };
 

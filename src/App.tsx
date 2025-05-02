@@ -28,6 +28,12 @@ import BookingProgressPage from "./pages/customer/BookingProgressPage";
 import ServiceTrackingPage from "./pages/customer/ServiceTrackingPage";
 import ServiceBillPage from "./pages/customer/ServiceBillPage";
 
+// Admin Pages
+import AdminLayout from "./components/admin/AdminLayout";
+import AdminLoginPage from "./pages/admin/AdminLoginPage";
+import AdminDashboardPage from "./pages/admin/AdminDashboardPage";
+import AdminUsersPage from "./pages/admin/AdminUsersPage";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -56,6 +62,16 @@ const App = () => (
             <Route path="/customer/booking-progress" element={<BookingProgressPage />} />
             <Route path="/customer/service-tracking" element={<ServiceTrackingPage />} />
             <Route path="/customer/service-bill" element={<ServiceBillPage />} />
+            
+            {/* Admin Routes */}
+            <Route path="/admin/login" element={<AdminLoginPage />} />
+            <Route path="/admin" element={<AdminLayout />}>
+              <Route path="dashboard" element={<AdminDashboardPage />} />
+              <Route path="users" element={<AdminUsersPage />} />
+              <Route path="worker-approvals" element={<AdminDashboardPage />} /> {/* Placeholder */}
+              <Route path="notifications" element={<AdminDashboardPage />} /> {/* Placeholder */}
+              <Route path="settings" element={<AdminDashboardPage />} /> {/* Placeholder */}
+            </Route>
             
             <Route path="*" element={<NotFound />} />
           </Routes>
