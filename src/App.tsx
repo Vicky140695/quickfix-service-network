@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { Routes, Route } from "react-router-dom";
 import { LanguageProvider } from "./contexts/LanguageContext";
 import { UserProvider } from "./contexts/UserContext";
 
@@ -37,30 +37,28 @@ const App = () => (
         <TooltipProvider>
           <Toaster />
           <Sonner />
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/language" element={<LanguageSelectionPage />} />
-              <Route path="/role-selection" element={<RoleSelectionPage />} />
-              
-              {/* Worker Routes */}
-              <Route path="/worker/phone-verification" element={<WorkerPhoneVerificationPage />} />
-              <Route path="/worker/registration" element={<WorkerRegistrationPage />} />
-              <Route path="/worker/terms" element={<WorkerTermsPage />} />
-              <Route path="/worker/payment" element={<WorkerPaymentPage />} />
-              <Route path="/worker/dashboard" element={<WorkerDashboardPage />} />
-              
-              {/* Customer Routes */}
-              <Route path="/customer/phone-verification" element={<CustomerPhoneVerificationPage />} />
-              <Route path="/customer/dashboard" element={<CustomerDashboardPage />} />
-              <Route path="/customer/book-service/:serviceId" element={<BookServicePage />} />
-              <Route path="/customer/booking-progress" element={<BookingProgressPage />} />
-              <Route path="/customer/service-tracking" element={<ServiceTrackingPage />} />
-              <Route path="/customer/service-bill" element={<ServiceBillPage />} />
-              
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/language" element={<LanguageSelectionPage />} />
+            <Route path="/role-selection" element={<RoleSelectionPage />} />
+            
+            {/* Worker Routes */}
+            <Route path="/worker/phone-verification" element={<WorkerPhoneVerificationPage />} />
+            <Route path="/worker/registration" element={<WorkerRegistrationPage />} />
+            <Route path="/worker/terms" element={<WorkerTermsPage />} />
+            <Route path="/worker/payment" element={<WorkerPaymentPage />} />
+            <Route path="/worker/dashboard" element={<WorkerDashboardPage />} />
+            
+            {/* Customer Routes */}
+            <Route path="/customer/phone-verification" element={<CustomerPhoneVerificationPage />} />
+            <Route path="/customer/dashboard" element={<CustomerDashboardPage />} />
+            <Route path="/customer/book-service/:serviceId" element={<BookServicePage />} />
+            <Route path="/customer/booking-progress" element={<BookingProgressPage />} />
+            <Route path="/customer/service-tracking" element={<ServiceTrackingPage />} />
+            <Route path="/customer/service-bill" element={<ServiceBillPage />} />
+            
+            <Route path="*" element={<NotFound />} />
+          </Routes>
         </TooltipProvider>
       </UserProvider>
     </LanguageProvider>
