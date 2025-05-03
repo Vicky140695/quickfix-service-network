@@ -27,6 +27,8 @@ const WorkerRegistration: React.FC = () => {
     { value: 'plumber', label: t('plumber') },
     { value: 'carpenter', label: t('carpenter') },
     { value: 'painter', label: t('painter') },
+    { value: 'ac-technician', label: 'AC Technician' },
+    { value: 'appliance-repair', label: 'Appliance Repair' },
     { value: 'other', label: t('other') }
   ];
 

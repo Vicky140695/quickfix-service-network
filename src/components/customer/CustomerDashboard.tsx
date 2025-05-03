@@ -11,7 +11,9 @@ const services = [
   { id: 'carpentry', name: 'Carpentry', icon: '🔨' },
   { id: 'painting', name: 'Painting', icon: '🖌️' },
   { id: 'cleaning', name: 'Cleaning', icon: '🧹' },
-  { id: 'gardening', name: 'Gardening', icon: '🌱' }
+  { id: 'ac-service', name: 'AC Service', icon: '❄️' },
+  { id: 'washing-machine', name: 'Washing Machine', icon: '🧺' },
+  { id: 'fridge-service', name: 'Fridge Service', icon: '🧊' }
 ];
 
 const CustomerDashboard: React.FC = () => {

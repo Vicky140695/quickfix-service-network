@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useLanguage } from '../../contexts/LanguageContext';
@@ -9,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { toast } from 'sonner';
+import { AirVent, WashingMachine, Refrigerator } from 'lucide-react';
 
 const BookService: React.FC = () => {
   const { serviceId } = useParams<{ serviceId: string }>();
@@ -22,14 +22,28 @@ const BookService: React.FC = () => {
   const [contactName, setContactName] = useState('');
   const [contactPhone, setContactPhone] = useState('');
 
-  // Service mapping based on ID
-  const serviceMap: Record<string, { name: string, icon: string }> = {
+  // Service mapping based on ID - updated to include new services and remove gardening
+  const serviceMap: Record<string, { name: string, icon: string, lucideIcon?: React.ReactNode }> = {
     'electrical': { name: 'Electrical', icon: '⚡' },
     'plumbing': { name: 'Plumbing', icon: '🚿' },
     'carpentry': { name: 'Carpentry', icon: '🔨' },
     'painting': { name: 'Painting', icon: '🖌️' },
     'cleaning': { name: 'Cleaning', icon: '🧹' },
-    'gardening': { name: 'Gardening', icon: '🌱' }
+    'ac-service': { 
+      name: 'AC Service/Maintenance', 
+      icon: '❄️',
+      lucideIcon: <AirVent className="h-5 w-5" />
+    },
+    'washing-machine': { 
+      name: 'Washing Machine Service', 
+      icon: '🧺',
+      lucideIcon: <WashingMachine className="h-5 w-5" />
+    },
+    'fridge-service': { 
+      name: 'Fridge Service', 
+      icon: '🧊',
+      lucideIcon: <Refrigerator className="h-5 w-5" />
+    }
   };
   
   const service = serviceId ? serviceMap[serviceId] : null;
@@ -88,8 +102,12 @@ const BookService: React.FC = () => {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center">
-            <span className="text-2xl mr-2">{service.icon}</span>
-            <span>Book {service.name} Service</span>
+            {service.lucideIcon ? (
+              <span className="mr-2">{service.lucideIcon}</span>
+            ) : (
+              <span className="text-2xl mr-2">{service.icon}</span>
+            )}
+            <span>Book {service.name}</span>
           </CardTitle>
           <CardDescription>Fill in the details to book a service</CardDescription>
         </CardHeader>
