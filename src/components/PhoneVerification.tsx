@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useUser } from '../contexts/UserContext';
@@ -27,25 +27,6 @@ const PhoneVerification: React.FC<PhoneVerificationProps> = ({
   const [showOtpInput, setShowOtpInput] = useState(false);
   const [otp, setOtp] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-
-  // Check for test phone number
-  useEffect(() => {
-    if (phoneNumber === '8778839633' && role === 'worker') {
-      // Auto-set as verified and paid worker for testing
-      setIsVerified(true);
-      setUserProfile({
-        ...userProfile,
-        name: 'Test Worker',
-        paymentCompleted: true,
-        available: true
-      });
-      
-      toast.success("Test account detected! Set as verified and paid worker.");
-      
-      // Navigate to worker dashboard for testing
-      navigate('/worker/dashboard');
-    }
-  }, [phoneNumber, role]);
 
   const handleSendOtp = () => {
     if (!phoneNumber || phoneNumber.length < 10) {

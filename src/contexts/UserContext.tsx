@@ -21,9 +21,14 @@ export interface UserProfile {
   address?: string;
   skills?: string[];
   otherSkill?: string;
+  workersCount?: number;
   agreedToTerms?: boolean;
   paymentCompleted?: boolean;
   available?: boolean;
+  aadhaarNumber?: string;
+  aadhaarVerified?: boolean;
+  kycStatus?: 'pending' | 'approved' | 'rejected';
+  kycSubmittedAt?: string;
 }
 
 interface UserProviderProps {

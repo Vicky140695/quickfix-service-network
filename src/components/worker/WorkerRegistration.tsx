@@ -18,6 +18,7 @@ const WorkerRegistration: React.FC = () => {
   
   const [name, setName] = useState(userProfile?.name || '');
   const [age, setAge] = useState<string>(userProfile?.age?.toString() || '');
+  const [workersCount, setWorkersCount] = useState<string>(userProfile?.workersCount?.toString() || '1');
   const [address, setAddress] = useState(userProfile?.address || '');
   const [skills, setSkills] = useState<string[]>(userProfile?.skills || []);
   const [otherSkill, setOtherSkill] = useState(userProfile?.otherSkill || '');
@@ -27,8 +28,10 @@ const WorkerRegistration: React.FC = () => {
     { value: 'plumber', label: t('plumber') },
     { value: 'carpenter', label: t('carpenter') },
     { value: 'painter', label: t('painter') },
-    { value: 'ac-technician', label: 'AC Technician' },
-    { value: 'appliance-repair', label: 'Appliance Repair' },
+    { value: 'cleaning', label: 'Cleaning' },
+    { value: 'ac-technician', label: 'AC Service & Installation' },
+    { value: 'washing-machine', label: 'Washing Machine Service' },
+    { value: 'fridge-service', label: 'Fridge Service' },
     { value: 'other', label: t('other') }
   ];
 
@@ -60,6 +63,11 @@ const WorkerRegistration: React.FC = () => {
       return;
     }
     
+    if (!workersCount || isNaN(Number(workersCount)) || Number(workersCount) < 1) {
+      toast.error("Please enter a valid number of workers");
+      return;
+    }
+    
     if (!address) {
       toast.error("Please enter your address");
       return;
@@ -79,6 +87,7 @@ const WorkerRegistration: React.FC = () => {
       ...userProfile,
       name,
       age: Number(age),
+      workersCount: Number(workersCount),
       address,
       skills,
       otherSkill
@@ -113,6 +122,19 @@ const WorkerRegistration: React.FC = () => {
                 onChange={(e) => setAge(e.target.value)}
                 className="w-full"
               />
+            </div>
+            
+            <div>
+              <Label htmlFor="workersCount">Number of Workers</Label>
+              <Input
+                id="workersCount"
+                type="number"
+                value={workersCount}
+                min="1"
+                onChange={(e) => setWorkersCount(e.target.value)}
+                className="w-full"
+              />
+              <p className="text-sm text-gray-500 mt-1">Including yourself</p>
             </div>
             
             <div>

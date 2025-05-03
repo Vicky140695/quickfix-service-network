@@ -21,7 +21,8 @@ const WorkerPayment: React.FC = () => {
       paymentCompleted: true
     });
     
-    navigate('/worker/dashboard');
+    // Redirect to KYC verification after payment
+    navigate('/worker/kyc');
   };
   
   const handleSkip = () => {
