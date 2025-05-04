@@ -6,10 +6,9 @@ import { useUser } from '../contexts/UserContext';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
-import { PhoneIcon } from 'lucide-react';
+import { PhoneIcon, Check, X, RefreshCw, Loader } from 'lucide-react';
 
 interface PhoneVerificationProps {
   workerRoute?: string;
@@ -146,7 +145,7 @@ const PhoneVerification: React.FC<PhoneVerificationProps> = ({
                 >
                   {isLoading ? (
                     <div className="flex items-center justify-center">
-                      <div className="w-5 h-5 border-2 border-t-transparent border-white rounded-full animate-spin mr-2"></div>
+                      <Loader className="w-5 h-5 mr-2 animate-spin" />
                       {t('send_otp')}
                     </div>
                   ) : (
@@ -171,18 +170,37 @@ const PhoneVerification: React.FC<PhoneVerificationProps> = ({
                     {t('enter_otp')}
                   </label>
                   <div className="flex justify-center mb-2">
-                    <InputOTP
-                      maxLength={6}
-                      value={otp}
-                      onChange={(value) => setOtp(value)}
-                      render={({ slots }) => (
-                        <InputOTPGroup>
-                          {slots.map((slot, index) => (
-                            <InputOTPSlot key={index} {...slot} index={index} />
-                          ))}
-                        </InputOTPGroup>
-                      )}
-                    />
+                    <div className="flex space-x-2">
+                      {[0, 1, 2, 3, 4, 5].map((index) => (
+                        <Input
+                          key={index}
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          maxLength={1}
+                          className="w-10 h-10 text-center text-lg"
+                          value={otp[index] || ''}
+                          onChange={(e) => {
+                            const newOtp = otp.split('');
+                            newOtp[index] = e.target.value.slice(-1);
+                            setOtp(newOtp.join(''));
+                            
+                            // Auto-focus next input
+                            if (e.target.value && index < 5) {
+                              const nextInput = e.target.parentElement?.nextElementSibling?.querySelector('input');
+                              if (nextInput) nextInput.focus();
+                            }
+                          }}
+                          onKeyDown={(e) => {
+                            // Handle backspace to go to previous input
+                            if (e.key === 'Backspace' && !otp[index] && index > 0) {
+                              const prevInput = e.currentTarget.parentElement?.previousElementSibling?.querySelector('input');
+                              if (prevInput) prevInput.focus();
+                            }
+                          }}
+                        />
+                      ))}
+                    </div>
                   </div>
                   <p className="text-sm text-center text-gray-500">A 6-digit code has been sent to your phone</p>
                 </div>
@@ -194,7 +212,7 @@ const PhoneVerification: React.FC<PhoneVerificationProps> = ({
                 >
                   {isLoading ? (
                     <div className="flex items-center justify-center">
-                      <div className="w-5 h-5 border-2 border-t-transparent border-white rounded-full animate-spin mr-2"></div>
+                      <Loader className="w-5 h-5 mr-2 animate-spin" />
                       {t('verify_otp')}
                     </div>
                   ) : (
