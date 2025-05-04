@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useUser } from '../contexts/UserContext';
@@ -28,6 +28,8 @@ const PhoneVerification: React.FC<PhoneVerificationProps> = ({
   const [showOtpInput, setShowOtpInput] = useState(false);
   const [otp, setOtp] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [resendDisabled, setResendDisabled] = useState(false);
+  const [resendTimer, setResendTimer] = useState(0);
   
   // Format phone number to ensure it has the +91 prefix
   const handlePhoneChange = (value: string) => {
@@ -48,6 +50,29 @@ const PhoneVerification: React.FC<PhoneVerificationProps> = ({
     }
   };
 
+  // Handle resend timer countdown
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+    
+    if (resendTimer > 0) {
+      interval = setInterval(() => {
+        setResendTimer((prev) => prev - 1);
+      }, 1000);
+    } else if (resendTimer === 0) {
+      setResendDisabled(false);
+      if (interval) clearInterval(interval);
+    }
+    
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [resendTimer]);
+
+  const startResendTimer = () => {
+    setResendDisabled(true);
+    setResendTimer(30); // 30 seconds cooldown
+  };
+
   const handleSendOtp = async () => {
     if (!phoneNumber || phoneNumber.length < 13) { // +91 + 10 digits
       toast.error("Please enter a valid phone number");
@@ -63,6 +88,7 @@ const PhoneVerification: React.FC<PhoneVerificationProps> = ({
         toast.success("OTP sent successfully!");
         setShowOtpInput(true);
         setIsLoading(false);
+        startResendTimer();
       }, 1500);
     } catch (error) {
       toast.error("Failed to send OTP. Please try again.");
@@ -97,6 +123,11 @@ const PhoneVerification: React.FC<PhoneVerificationProps> = ({
       toast.error("Invalid OTP. Please try again.");
       setIsLoading(false);
     }
+  };
+
+  const handleResendOtp = () => {
+    if (resendDisabled) return;
+    handleSendOtp();
   };
 
   const handleSkip = () => {
@@ -229,16 +260,19 @@ const PhoneVerification: React.FC<PhoneVerificationProps> = ({
                   {t('back')}
                 </Button>
                 
-                <p className="text-center text-sm">
+                <div className="text-center text-sm">
                   Didn't receive the code?{" "}
                   <button 
-                    className="text-primary hover:underline" 
-                    onClick={handleSendOtp}
-                    disabled={isLoading}
+                    className={`text-primary hover:underline ${resendDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    onClick={handleResendOtp}
+                    disabled={resendDisabled}
+                    type="button"
                   >
-                    Resend OTP
+                    {resendDisabled 
+                      ? `Resend OTP in ${resendTimer}s` 
+                      : 'Resend OTP'}
                   </button>
-                </p>
+                </div>
               </div>
             )}
           </motion.div>
