@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
+import { PhoneIcon } from 'lucide-react';
 
 interface PhoneVerificationProps {
   workerRoute?: string;
@@ -21,15 +22,34 @@ const PhoneVerification: React.FC<PhoneVerificationProps> = ({
   skipRoute
 }) => {
   const { t } = useLanguage();
-  const { role, phoneNumber, setPhoneNumber, setIsVerified, setUserProfile, userProfile } = useUser();
+  const { role, phoneNumber, setPhoneNumber, setIsVerified, userProfile } = useUser();
   const navigate = useNavigate();
   
   const [showOtpInput, setShowOtpInput] = useState(false);
   const [otp, setOtp] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  
+  // Format phone number to ensure it has the +91 prefix
+  const handlePhoneChange = (value: string) => {
+    // Remove any non-digit characters except the + sign
+    const cleaned = value.replace(/[^\d+]/g, '');
+    
+    // Ensure the number starts with +91
+    if (!cleaned.startsWith('+91')) {
+      if (cleaned.startsWith('+')) {
+        setPhoneNumber('+91' + cleaned.substring(1));
+      } else if (cleaned.startsWith('91')) {
+        setPhoneNumber('+' + cleaned);
+      } else {
+        setPhoneNumber('+91' + cleaned);
+      }
+    } else {
+      setPhoneNumber(cleaned);
+    }
+  };
 
   const handleSendOtp = () => {
-    if (!phoneNumber || phoneNumber.length < 10) {
+    if (!phoneNumber || phoneNumber.length < 13) { // +91 + 10 digits
       toast.error("Please enter a valid phone number");
       return;
     }
@@ -90,14 +110,20 @@ const PhoneVerification: React.FC<PhoneVerificationProps> = ({
                   <label htmlFor="phone" className="block text-sm font-medium mb-1">
                     {t('enter_phone')}
                   </label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    value={phoneNumber}
-                    onChange={(e) => setPhoneNumber(e.target.value)}
-                    placeholder="9876543210"
-                    className="w-full"
-                  />
+                  <div className="flex items-center">
+                    <div className="flex items-center bg-gray-100 border border-gray-300 rounded-l px-3 py-2">
+                      <PhoneIcon className="h-5 w-5 text-gray-500 mr-1" />
+                    </div>
+                    <Input
+                      id="phone"
+                      type="tel"
+                      value={phoneNumber || '+91'}
+                      onChange={(e) => handlePhoneChange(e.target.value)}
+                      placeholder="+91 9876543210"
+                      className="rounded-l-none flex-1"
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">Format: +91 followed by 10 digits</p>
                 </div>
                 
                 <Button
