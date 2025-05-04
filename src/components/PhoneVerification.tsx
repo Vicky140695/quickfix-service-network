@@ -6,6 +6,7 @@ import { useUser } from '../contexts/UserContext';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { PhoneIcon } from 'lucide-react';
@@ -48,7 +49,7 @@ const PhoneVerification: React.FC<PhoneVerificationProps> = ({
     }
   };
 
-  const handleSendOtp = () => {
+  const handleSendOtp = async () => {
     if (!phoneNumber || phoneNumber.length < 13) { // +91 + 10 digits
       toast.error("Please enter a valid phone number");
       return;
@@ -56,35 +57,47 @@ const PhoneVerification: React.FC<PhoneVerificationProps> = ({
     
     setIsLoading(true);
     
-    // Simulate OTP sending
-    setTimeout(() => {
-      toast.success("OTP sent successfully!");
-      setShowOtpInput(true);
+    try {
+      // Call the Supabase function to send OTP (this will be implemented after Supabase integration)
+      // For now, we'll just simulate it with a timeout
+      setTimeout(() => {
+        toast.success("OTP sent successfully!");
+        setShowOtpInput(true);
+        setIsLoading(false);
+      }, 1500);
+    } catch (error) {
+      toast.error("Failed to send OTP. Please try again.");
       setIsLoading(false);
-    }, 1500);
+    }
   };
 
-  const handleVerifyOtp = () => {
-    if (!otp || otp.length < 4) {
-      toast.error("Please enter a valid OTP");
+  const handleVerifyOtp = async () => {
+    if (!otp || otp.length !== 6) {
+      toast.error("Please enter a valid 6-digit OTP");
       return;
     }
     
     setIsLoading(true);
     
-    // Simulate OTP verification
-    setTimeout(() => {
-      setIsVerified(true);
-      toast.success("Phone number verified successfully!");
+    try {
+      // Call the Supabase function to verify OTP (this will be implemented after Supabase integration)
+      // For now, we'll just simulate it
+      setTimeout(() => {
+        setIsVerified(true);
+        toast.success("Phone number verified successfully!");
+        setIsLoading(false);
+        
+        // Navigate based on role
+        if (role === 'worker') {
+          navigate(workerRoute);
+        } else {
+          navigate(customerRoute);
+        }
+      }, 1500);
+    } catch (error) {
+      toast.error("Invalid OTP. Please try again.");
       setIsLoading(false);
-      
-      // Navigate based on role
-      if (role === 'worker') {
-        navigate(workerRoute);
-      } else {
-        navigate(customerRoute);
-      }
-    }, 1500);
+    }
   };
 
   const handleSkip = () => {
@@ -152,18 +165,26 @@ const PhoneVerification: React.FC<PhoneVerificationProps> = ({
                 )}
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-6">
                 <div>
                   <label htmlFor="otp" className="block text-sm font-medium mb-1">
                     {t('enter_otp')}
                   </label>
-                  <Input
-                    id="otp"
-                    value={otp}
-                    onChange={(e) => setOtp(e.target.value)}
-                    placeholder="1234"
-                    className="w-full"
-                  />
+                  <div className="flex justify-center mb-2">
+                    <InputOTP
+                      maxLength={6}
+                      value={otp}
+                      onChange={(value) => setOtp(value)}
+                      render={({ slots }) => (
+                        <InputOTPGroup>
+                          {slots.map((slot, index) => (
+                            <InputOTPSlot key={index} {...slot} index={index} />
+                          ))}
+                        </InputOTPGroup>
+                      )}
+                    />
+                  </div>
+                  <p className="text-sm text-center text-gray-500">A 6-digit code has been sent to your phone</p>
                 </div>
                 
                 <Button
@@ -183,12 +204,23 @@ const PhoneVerification: React.FC<PhoneVerificationProps> = ({
                 
                 <Button
                   variant="ghost"
-                  className="w-full"
+                  className="w-full mt-2"
                   onClick={() => setShowOtpInput(false)}
                   disabled={isLoading}
                 >
                   {t('back')}
                 </Button>
+                
+                <p className="text-center text-sm">
+                  Didn't receive the code?{" "}
+                  <button 
+                    className="text-primary hover:underline" 
+                    onClick={handleSendOtp}
+                    disabled={isLoading}
+                  >
+                    Resend OTP
+                  </button>
+                </p>
               </div>
             )}
           </motion.div>
