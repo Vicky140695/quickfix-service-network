@@ -21,6 +21,8 @@ import WorkerTermsPage from "./pages/worker/WorkerTermsPage";
 import WorkerPaymentPage from "./pages/worker/WorkerPaymentPage";
 import WorkerDashboardPage from "./pages/worker/WorkerDashboardPage";
 import WorkerEarningsPage from "./pages/worker/WorkerEarningsPage";
+import WorkerEstimationPage from "./pages/worker/WorkerEstimationPage";
+import WorkerBillPage from "./pages/worker/WorkerBillPage";
 
 // Customer Pages
 import CustomerPhoneVerificationPage from "./pages/customer/CustomerPhoneVerificationPage";
@@ -30,6 +32,7 @@ import BookingProgressPage from "./pages/customer/BookingProgressPage";
 import ServiceTrackingPage from "./pages/customer/ServiceTrackingPage";
 import ServiceBillPage from "./pages/customer/ServiceBillPage";
 import WalletPage from "./pages/customer/WalletPage";
+import EstimationPage from "./pages/customer/EstimationPage";
 
 // Admin Pages
 import AdminLayout from "./components/admin/AdminLayout";
@@ -59,6 +62,8 @@ const App = () => (
               <Route path="/worker/payment" element={<WorkerPaymentPage />} />
               <Route path="/worker/dashboard" element={<WorkerDashboardPage />} />
               <Route path="/worker/earnings" element={<WorkerEarningsPage />} />
+              <Route path="/worker/estimation" element={<WorkerEstimationPage />} />
+              <Route path="/worker/bill" element={<WorkerBillPage />} />
               
               {/* Customer Routes */}
               <Route path="/customer/phone-verification" element={<CustomerPhoneVerificationPage />} />
@@ -68,6 +73,7 @@ const App = () => (
               <Route path="/customer/service-tracking" element={<ServiceTrackingPage />} />
               <Route path="/customer/service-bill" element={<ServiceBillPage />} />
               <Route path="/customer/wallet" element={<WalletPage />} />
+              <Route path="/customer/estimation" element={<EstimationPage />} />
               
               {/* Admin Routes */}
               <Route path="/admin/login" element={<AdminLoginPage />} />

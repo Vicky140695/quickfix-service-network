@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useLanguage } from '../../contexts/LanguageContext';
@@ -62,10 +63,7 @@ const BookService: React.FC = () => {
       return;
     }
     
-    if (!description) {
-      toast.error("Please provide a description of the issue");
-      return;
-    }
+    // Description is now optional, no validation needed for it
     
     if (bookingType === 'other' && (!contactName || !contactPhone)) {
       toast.error("Please provide contact information");
@@ -190,12 +188,14 @@ const BookService: React.FC = () => {
           </div>
           
           <div>
-            <Label htmlFor="description">Describe the issue</Label>
+            <Label htmlFor="description">
+              Describe the issue <span className="text-gray-500 text-sm">(optional)</span>
+            </Label>
             <Textarea
               id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Please provide details about the service needed"
+              placeholder="Please provide details about the service needed (optional)"
               rows={4}
             />
           </div>
