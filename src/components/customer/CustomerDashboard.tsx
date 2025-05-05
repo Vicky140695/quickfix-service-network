@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import WalletWidget from './WalletWidget';
 import ReferralWidget from './ReferralWidget';
+import { CalendarDays, FileText } from 'lucide-react';
 
 const services = [
   { id: 'electrical', name: 'Electrical', icon: '⚡' },
@@ -33,8 +34,18 @@ const CustomerDashboard: React.FC = () => {
         <p className="text-gray-600">Find skilled professionals for your service needs</p>
       </div>
       
-      <div className="mb-8">
-        <h2 className="text-xl font-semibold mb-4">{t('book_service')}</h2>
+      <div className="mb-6">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold">{t('book_service')}</h2>
+          <Button 
+            onClick={() => navigate('/customer/estimation')} 
+            variant="outline" 
+            className="flex items-center gap-2"
+          >
+            <FileText className="h-4 w-4" />
+            Get Price Estimate
+          </Button>
+        </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           {services.map((service) => (
             <Card 

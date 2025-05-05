@@ -9,7 +9,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { toast } from 'sonner';
-import { AirVent, WashingMachine, Refrigerator } from 'lucide-react';
+import { AirVent, WashingMachine, Refrigerator, CalendarClock, Clock } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { format, addDays, isBefore, isToday, setHours, setMinutes } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 const BookService: React.FC = () => {
   const { serviceId } = useParams<{ serviceId: string }>();
@@ -22,8 +27,16 @@ const BookService: React.FC = () => {
   const [description, setDescription] = useState('');
   const [contactName, setContactName] = useState('');
   const [contactPhone, setContactPhone] = useState('');
+  
+  // New states for date and time selection
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(
+    timePreference === 'now' ? new Date() : addDays(new Date(), 1)
+  );
+  const [selectedTime, setSelectedTime] = useState<string>(
+    timePreference === 'now' ? 'asap' : '10:00'
+  );
 
-  // Service mapping based on ID - updated to include new services and remove gardening
+  // Service mapping based on ID
   const serviceMap: Record<string, { name: string, icon: string, lucideIcon?: React.ReactNode }> = {
     'electrical': { name: 'Electrical', icon: '⚡' },
     'plumbing': { name: 'Plumbing', icon: '🚿' },
@@ -49,6 +62,56 @@ const BookService: React.FC = () => {
   
   const service = serviceId ? serviceMap[serviceId] : null;
 
+  // Generate time slots from 8:00 AM to 8:00 PM
+  const generateTimeSlots = () => {
+    const slots = [];
+    if (timePreference === 'now') {
+      slots.push({ value: 'asap', label: 'As soon as possible' });
+    }
+    
+    for (let hour = 8; hour <= 20; hour++) {
+      const formattedHour = hour % 12 === 0 ? 12 : hour % 12;
+      const period = hour < 12 ? 'AM' : 'PM';
+      
+      slots.push({ 
+        value: `${hour}:00`, 
+        label: `${formattedHour}:00 ${period}` 
+      });
+      
+      if (hour < 20) {
+        slots.push({ 
+          value: `${hour}:30`, 
+          label: `${formattedHour}:30 ${period}` 
+        });
+      }
+    }
+    return slots;
+  };
+  
+  const timeSlots = generateTimeSlots();
+
+  // Disable past dates in the calendar
+  const disableDates = (date: Date) => {
+    if (timePreference === 'now') {
+      return !isToday(date);
+    }
+    return isBefore(date, new Date()) && !isToday(date);
+  };
+
+  // Handle time preference change
+  const handleTimePreferenceChange = (value: 'now' | 'later') => {
+    setTimePreference(value);
+    
+    if (value === 'now') {
+      setSelectedDate(new Date());
+      setSelectedTime('asap');
+    } else {
+      // Default to tomorrow for scheduled services
+      setSelectedDate(addDays(new Date(), 1));
+      setSelectedTime('10:00');
+    }
+  };
+
   const handleCurrentLocation = () => {
     toast.info("Getting current location...");
     setTimeout(() => {
@@ -63,12 +126,20 @@ const BookService: React.FC = () => {
       return;
     }
     
-    // Description is now optional, no validation needed for it
-    
     if (bookingType === 'other' && (!contactName || !contactPhone)) {
       toast.error("Please provide contact information");
       return;
     }
+    
+    if (timePreference === 'later' && (!selectedDate || !selectedTime)) {
+      toast.error("Please select a date and time for the service");
+      return;
+    }
+    
+    // Format the selected date and time for display
+    const scheduledDateTime = timePreference === 'now' 
+      ? 'As soon as possible'
+      : `${format(selectedDate as Date, 'PP')} at ${selectedTime.split(':')[0]}:${selectedTime.split(':')[1] || '00'}`;
     
     // Navigate to the booking confirmation/loading page
     navigate('/customer/booking-progress', { 
@@ -78,6 +149,7 @@ const BookService: React.FC = () => {
         description,
         bookingType,
         timePreference,
+        scheduledDateTime,
         contactName: bookingType === 'other' ? contactName : '',
         contactPhone: bookingType === 'other' ? contactPhone : ''
       }
@@ -155,7 +227,7 @@ const BookService: React.FC = () => {
             <h3 className="text-lg font-medium mb-3">When do you need the service?</h3>
             <RadioGroup
               value={timePreference}
-              onValueChange={(value) => setTimePreference(value as 'now' | 'later')}
+              onValueChange={(value) => handleTimePreferenceChange(value as 'now' | 'later')}
               className="flex space-x-4"
             >
               <div className="flex items-center space-x-2">
@@ -168,6 +240,55 @@ const BookService: React.FC = () => {
               </div>
             </RadioGroup>
           </div>
+          
+          {timePreference === 'later' && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="date">Select Date</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      id="date"
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !selectedDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarClock className="mr-2 h-4 w-4" />
+                      {selectedDate ? format(selectedDate, 'PP') : 'Select a date'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={selectedDate}
+                      onSelect={setSelectedDate}
+                      disabled={disableDates}
+                      initialFocus
+                      className="p-3 pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div>
+                <Label htmlFor="time">Select Time</Label>
+                <Select value={selectedTime} onValueChange={setSelectedTime}>
+                  <SelectTrigger id="time" className="w-full">
+                    <Clock className="mr-2 h-4 w-4" />
+                    <SelectValue placeholder="Select a time" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {timeSlots.map((slot) => (
+                      <SelectItem key={slot.value} value={slot.value}>
+                        {slot.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
           
           <div>
             <Label htmlFor="address">{t('address')}</Label>
