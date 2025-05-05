@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../../contexts/LanguageContext';
@@ -16,7 +15,7 @@ import {
   TableHeader, 
   TableRow 
 } from '@/components/ui/table';
-import { file-text, Trash2, Plus, Save } from 'lucide-react';
+import { FileText, Trash2, Plus, Save } from 'lucide-react';
 
 const WorkerBillGenerator: React.FC = () => {
   const { t } = useLanguage();
@@ -83,7 +82,7 @@ const WorkerBillGenerator: React.FC = () => {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center">
-            <file-text className="mr-2 h-5 w-5" />
+            <FileText className="mr-2 h-5 w-5" />
             Generate Bill
           </CardTitle>
           <CardDescription>Create a bill for the completed service</CardDescription>
