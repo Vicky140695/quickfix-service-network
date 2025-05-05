@@ -2,43 +2,41 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { useUser } from '../../contexts/UserContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from '@/components/ui/table';
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-
-const defaultServices = [
-  { id: 1, service: 'Electrical', task: 'Fan Installation', price: 350 },
-  { id: 2, service: 'Electrical', task: 'Switch Board Repair', price: 250 },
-  { id: 3, service: 'Plumbing', task: 'Tap Installation', price: 200 },
-  { id: 4, service: 'Plumbing', task: 'Pipe Leakage Repair', price: 400 },
-  { id: 5, service: 'AC Service', task: 'General Service', price: 600 },
-  { id: 6, service: 'AC Service', task: 'Gas Refill', price: 1500 },
-  { id: 7, service: 'Washing Machine', task: 'General Service', price: 500 },
-  { id: 8, service: 'Carpentry', task: 'Door Repair', price: 450 },
-  { id: 9, service: 'Carpentry', task: 'Furniture Assembly', price: 600 },
-  { id: 10, service: 'Painting', task: 'Wall Painting (per sqft)', price: 15 }
-];
+import { getDefaultServices, saveEstimationRequest, EstimationItem } from '../../services/estimationService';
 
 const ServiceEstimation: React.FC = () => {
   const { t } = useLanguage();
+  const { phoneNumber } = useUser();
   const navigate = useNavigate();
-  const [selectedServices, setSelectedServices] = useState<Array<{id: number, service: string, task: string, price: number, quantity: number}>>([]);
+  const [selectedServices, setSelectedServices] = useState<EstimationItem[]>([]);
   const [filterService, setFilterService] = useState('');
   const [otherWorkTitle, setOtherWorkTitle] = useState('');
   const [otherWorkDescription, setOtherWorkDescription] = useState('');
   const [otherWorkPrice, setOtherWorkPrice] = useState('');
+  const [customerName, setCustomerName] = useState('');
+  const [customerPhone, setCustomerPhone] = useState(phoneNumber || '');
+  const [customerAddress, setCustomerAddress] = useState('');
+  const [notes, setNotes] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Get default services from our service
+  const defaultServices = getDefaultServices();
   
   // Filter services based on search input
   const filteredServices = defaultServices.filter(service => 
@@ -46,7 +44,7 @@ const ServiceEstimation: React.FC = () => {
     service.task.toLowerCase().includes(filterService.toLowerCase())
   );
   
-  const handleAddService = (service: {id: number, service: string, task: string, price: number}) => {
+  const handleAddService = (service: Omit<EstimationItem, 'quantity'>) => {
     const existing = selectedServices.find(s => s.id === service.id);
     
     if (existing) {
@@ -86,7 +84,7 @@ const ServiceEstimation: React.FC = () => {
       return;
     }
     
-    const newId = Math.max(0, ...selectedServices.map(s => s.id)) + 1;
+    const newId = Math.max(0, ...selectedServices.map(s => s.id), ...defaultServices.map(s => s.id)) + 1;
     setSelectedServices([
       ...selectedServices, 
       {
@@ -110,16 +108,36 @@ const ServiceEstimation: React.FC = () => {
   const tax = subtotal * 0.18; // 18% GST
   const total = subtotal + tax;
   
-  const handleRequestEstimate = () => {
+  const handleRequestEstimate = async () => {
     if (selectedServices.length === 0) {
       toast.error("Please select at least one service");
       return;
     }
     
-    // In a real app, send this to backend
-    toast.success("Estimate requested successfully!");
-    // Navigate to confirmation or dashboard
-    setTimeout(() => navigate('/customer/dashboard'), 1500);
+    setIsSubmitting(true);
+    
+    try {
+      // Save estimation request using our service
+      await saveEstimationRequest({
+        items: selectedServices,
+        subtotal,
+        tax,
+        total,
+        customerName,
+        customerPhone,
+        customerAddress,
+        notes
+      });
+      
+      toast.success("Estimate requested successfully!");
+      // Navigate to confirmation or dashboard
+      setTimeout(() => navigate('/customer/dashboard'), 1500);
+    } catch (error) {
+      console.error("Error requesting estimate:", error);
+      toast.error("Failed to request estimate. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -217,6 +235,51 @@ const ServiceEstimation: React.FC = () => {
                   </div>
                 </DialogContent>
               </Dialog>
+              
+              {/* Customer Information - Added section */}
+              <div className="space-y-4 pt-4 border-t mt-4">
+                <h3 className="font-medium mb-3">Customer Information</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="customer-name">Your Name (optional)</Label>
+                    <Input
+                      id="customer-name"
+                      value={customerName}
+                      onChange={(e) => setCustomerName(e.target.value)}
+                      placeholder="Enter your name"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="customer-phone">Your Phone (optional)</Label>
+                    <Input
+                      id="customer-phone"
+                      value={customerPhone}
+                      onChange={(e) => setCustomerPhone(e.target.value)}
+                      placeholder="Enter your phone number"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="customer-address">Service Address (optional)</Label>
+                  <Textarea
+                    id="customer-address"
+                    value={customerAddress}
+                    onChange={(e) => setCustomerAddress(e.target.value)}
+                    placeholder="Enter service address"
+                    rows={2}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="customer-notes">Notes (optional)</Label>
+                  <Textarea
+                    id="customer-notes"
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    placeholder="Any additional information you'd like to provide"
+                    rows={2}
+                  />
+                </div>
+              </div>
             </div>
             
             {/* Selected services and total - Right side */}
@@ -285,9 +348,9 @@ const ServiceEstimation: React.FC = () => {
               <Button 
                 className="w-full" 
                 onClick={handleRequestEstimate}
-                disabled={selectedServices.length === 0}
+                disabled={selectedServices.length === 0 || isSubmitting}
               >
-                Request Estimate
+                {isSubmitting ? 'Processing...' : 'Request Estimate'}
               </Button>
               <p className="text-xs text-center text-gray-500">
                 This is just an estimate. Final price may vary based on actual work required.

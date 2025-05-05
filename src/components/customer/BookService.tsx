@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { toast } from 'sonner';
-import { AirVent, WashingMachine, Refrigerator, CalendarClock, Clock } from 'lucide-react';
+import { AirVent, WashingMachine, Refrigerator, CalendarDays, Clock } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -114,10 +114,23 @@ const BookService: React.FC = () => {
 
   const handleCurrentLocation = () => {
     toast.info("Getting current location...");
-    setTimeout(() => {
-      setAddress("123 Main Street, Sample City");
-      toast.success("Location set successfully!");
-    }, 1000);
+    
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          // In a real app, you would use a reverse geocoding service here
+          const mockAddress = "123 Main Street, Sample City";
+          setAddress(mockAddress);
+          toast.success("Location set successfully!");
+        },
+        (error) => {
+          console.error("Error getting location:", error);
+          toast.error("Failed to get location: " + error.message);
+        }
+      );
+    } else {
+      toast.error("Geolocation is not supported by your browser");
+    }
   };
   
   const handleBookNow = () => {
@@ -141,9 +154,12 @@ const BookService: React.FC = () => {
       ? 'As soon as possible'
       : `${format(selectedDate as Date, 'PP')} at ${selectedTime.split(':')[0]}:${selectedTime.split(':')[1] || '00'}`;
     
-    // Navigate to the booking confirmation/loading page
-    navigate('/customer/booking-progress', { 
-      state: { 
+    // Store the booking in local storage (simulating a backend)
+    try {
+      const bookings = JSON.parse(localStorage.getItem('quickfix-bookings') || '[]');
+      
+      const newBooking = {
+        id: `booking-${Date.now()}`,
         service: service?.name,
         address,
         description,
@@ -151,9 +167,22 @@ const BookService: React.FC = () => {
         timePreference,
         scheduledDateTime,
         contactName: bookingType === 'other' ? contactName : '',
-        contactPhone: bookingType === 'other' ? contactPhone : ''
-      }
-    });
+        contactPhone: bookingType === 'other' ? contactPhone : '',
+        status: 'pending',
+        createdAt: Date.now()
+      };
+      
+      bookings.push(newBooking);
+      localStorage.setItem('quickfix-bookings', JSON.stringify(bookings));
+      
+      // Navigate to the booking confirmation/loading page
+      navigate('/customer/booking-progress', { 
+        state: newBooking
+      });
+    } catch (error) {
+      console.error("Error saving booking:", error);
+      toast.error("Failed to save booking. Please try again.");
+    }
   };
 
   if (!service) {
@@ -255,7 +284,7 @@ const BookService: React.FC = () => {
                         !selectedDate && "text-muted-foreground"
                       )}
                     >
-                      <CalendarClock className="mr-2 h-4 w-4" />
+                      <CalendarDays className="mr-2 h-4 w-4" />
                       {selectedDate ? format(selectedDate, 'PP') : 'Select a date'}
                     </Button>
                   </PopoverTrigger>
