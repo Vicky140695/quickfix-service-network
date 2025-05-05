@@ -142,7 +142,7 @@ const WorkerBillGenerator: React.FC = () => {
                   <TableRow>
                     <TableHead>Description</TableHead>
                     <TableHead className="text-right">Amount (₹)</TableHead>
-                    <TableHead width="80px"></TableHead>
+                    <TableHead className="w-20">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
