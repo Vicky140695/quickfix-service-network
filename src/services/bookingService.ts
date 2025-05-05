@@ -123,3 +123,88 @@ export const getUserBookings = (userId: string): Booking[] => {
   // Since we're simulating a backend, we'll just return all bookings
   return getBookings();
 };
+
+// Admin functions
+
+// Get bookings by status
+export const getBookingsByStatus = (status: Booking['status']): Booking[] => {
+  try {
+    const bookings = getBookings();
+    return bookings.filter(b => b.status === status);
+  } catch (error) {
+    console.error("Error filtering bookings by status:", error);
+    toast.error("Failed to filter bookings");
+    return [];
+  }
+};
+
+// Get recent bookings (last 7 days)
+export const getRecentBookings = (): Booking[] => {
+  try {
+    const bookings = getBookings();
+    const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+    return bookings.filter(b => b.createdAt >= sevenDaysAgo)
+      .sort((a, b) => b.createdAt - a.createdAt);
+  } catch (error) {
+    console.error("Error getting recent bookings:", error);
+    toast.error("Failed to load recent bookings");
+    return [];
+  }
+};
+
+// Get booking statistics
+export const getBookingStatistics = () => {
+  try {
+    const bookings = getBookings();
+    
+    const total = bookings.length;
+    const pending = bookings.filter(b => b.status === 'pending').length;
+    const confirmed = bookings.filter(b => b.status === 'confirmed').length;
+    const completed = bookings.filter(b => b.status === 'completed').length;
+    const cancelled = bookings.filter(b => b.status === 'cancelled').length;
+    
+    // Calculate percentage changes (demo data)
+    const pendingChange = 5;
+    const confirmedChange = 12;
+    const completedChange = 18;
+    const cancelledChange = -3;
+    
+    return {
+      total,
+      pending: { count: pending, change: pendingChange },
+      confirmed: { count: confirmed, change: confirmedChange },
+      completed: { count: completed, change: completedChange },
+      cancelled: { count: cancelled, change: cancelledChange },
+    };
+  } catch (error) {
+    console.error("Error calculating booking statistics:", error);
+    toast.error("Failed to calculate booking statistics");
+    return {
+      total: 0,
+      pending: { count: 0, change: 0 },
+      confirmed: { count: 0, change: 0 },
+      completed: { count: 0, change: 0 },
+      cancelled: { count: 0, change: 0 },
+    };
+  }
+};
+
+// Delete a booking
+export const deleteBooking = (id: string): boolean => {
+  try {
+    const bookings = getBookings();
+    const filteredBookings = bookings.filter(b => b.id !== id);
+    
+    if (filteredBookings.length === bookings.length) {
+      // No booking was removed
+      return false;
+    }
+    
+    localStorage.setItem(BOOKINGS_KEY, JSON.stringify(filteredBookings));
+    return true;
+  } catch (error) {
+    console.error("Error deleting booking:", error);
+    toast.error("Failed to delete booking");
+    return false;
+  }
+};

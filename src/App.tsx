@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { LanguageProvider } from "./contexts/LanguageContext";
 import { UserProvider } from "./contexts/UserContext";
 import { WalletProvider } from "./contexts/WalletContext";
@@ -39,6 +39,9 @@ import AdminLayout from "./components/admin/AdminLayout";
 import AdminLoginPage from "./pages/admin/AdminLoginPage";
 import AdminDashboardPage from "./pages/admin/AdminDashboardPage";
 import AdminUsersPage from "./pages/admin/AdminUsersPage";
+import AdminWorkerApprovalsPage from "./pages/admin/AdminWorkerApprovalsPage";
+import AdminNotificationsPage from "./pages/admin/AdminNotificationsPage";
+import AdminSettingsPage from "./pages/admin/AdminSettingsPage";
 
 const queryClient = new QueryClient();
 
@@ -77,12 +80,13 @@ const App = () => (
               
               {/* Admin Routes */}
               <Route path="/admin/login" element={<AdminLoginPage />} />
+              <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
               <Route path="/admin" element={<AdminLayout />}>
                 <Route path="dashboard" element={<AdminDashboardPage />} />
                 <Route path="users" element={<AdminUsersPage />} />
-                <Route path="worker-approvals" element={<AdminDashboardPage />} /> {/* Placeholder */}
-                <Route path="notifications" element={<AdminDashboardPage />} /> {/* Placeholder */}
-                <Route path="settings" element={<AdminDashboardPage />} /> {/* Placeholder */}
+                <Route path="worker-approvals" element={<AdminWorkerApprovalsPage />} />
+                <Route path="notifications" element={<AdminNotificationsPage />} />
+                <Route path="settings" element={<AdminSettingsPage />} />
               </Route>
               
               <Route path="*" element={<NotFound />} />

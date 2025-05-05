@@ -25,8 +25,8 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
+import { toast } from 'sonner';
 
 interface Worker {
   id: string;
@@ -68,8 +68,9 @@ const AdminWorkerApprovalsPage = () => {
   const [selectedWorker, setSelectedWorker] = useState<Worker | null>(null);
   const [selectedCustomer, setSelectedCustomer] = useState<string>('');
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [workers, setWorkers] = useState<Worker[]>(MOCK_WORKERS);
 
-  const filteredWorkers = MOCK_WORKERS.filter(worker => 
+  const filteredWorkers = workers.filter(worker => 
     worker.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     worker.skills.some(skill => skill.toLowerCase().includes(searchTerm.toLowerCase())) ||
     worker.location.toLowerCase().includes(searchTerm.toLowerCase())
@@ -77,9 +78,22 @@ const AdminWorkerApprovalsPage = () => {
 
   const handleAssignWorker = () => {
     // In a real application, this would call an API to assign the worker
-    console.log(`Assigned worker ${selectedWorker?.name} to customer ${selectedCustomer}`);
-    alert(`Worker ${selectedWorker?.name} has been assigned to the customer successfully!`);
+    toast.success(`Worker ${selectedWorker?.name} has been assigned to the customer successfully!`);
     setDialogOpen(false);
+  };
+
+  const approveWorker = (workerId: string) => {
+    setWorkers(workers.map(worker => 
+      worker.id === workerId ? { ...worker, status: 'active' } : worker
+    ));
+    toast.success("Worker approved successfully!");
+  };
+
+  const rejectWorker = (workerId: string) => {
+    setWorkers(workers.map(worker => 
+      worker.id === workerId ? { ...worker, status: 'inactive' } : worker
+    ));
+    toast.success("Worker rejected successfully!");
   };
 
   return (
@@ -92,7 +106,7 @@ const AdminWorkerApprovalsPage = () => {
       <Card>
         <CardHeader>
           <div className="flex justify-between items-center">
-            <CardTitle>Worker Details</CardTitle>
+            <CardTitle>Worker Approvals</CardTitle>
             <div className="relative w-64">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
               <Input 
@@ -105,69 +119,100 @@ const AdminWorkerApprovalsPage = () => {
           </div>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Phone</TableHead>
-                <TableHead>Skills</TableHead>
-                <TableHead>Rating</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Location</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredWorkers.map((worker) => (
-                <TableRow key={worker.id}>
-                  <TableCell className="font-medium">
-                    <div className="flex items-center gap-2">
-                      <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                        <User className="h-4 w-4 text-primary" />
-                      </div>
-                      {worker.name}
-                    </div>
-                  </TableCell>
-                  <TableCell>{worker.phone}</TableCell>
-                  <TableCell>{worker.skills.join(', ')}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center">
-                      {worker.rating}
-                      <span className="text-yellow-500 ml-1">★</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <span className={`px-2 py-1 rounded-full text-xs ${
-                      worker.status === 'active' ? 'bg-green-100 text-green-800' : 
-                      worker.status === 'inactive' ? 'bg-red-100 text-red-800' : 
-                      'bg-yellow-100 text-yellow-800'
-                    }`}>
-                      {worker.status === 'active' ? 'Active' : 
-                      worker.status === 'inactive' ? 'Inactive' : 'Pending'}
-                    </span>
-                  </TableCell>
-                  <TableCell>{worker.location}</TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => {
-                          setSelectedWorker(worker);
-                          setDialogOpen(true);
-                        }}
-                        className="flex items-center gap-1"
-                      >
-                        <UserCheck className="h-4 w-4" />
-                        Assign
-                      </Button>
-                      <Button variant="outline" size="sm">View</Button>
-                    </div>
-                  </TableCell>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Phone</TableHead>
+                  <TableHead>Skills</TableHead>
+                  <TableHead>Rating</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Location</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {filteredWorkers.map((worker) => (
+                  <TableRow key={worker.id}>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-2">
+                        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                          <User className="h-4 w-4 text-primary" />
+                        </div>
+                        {worker.name}
+                      </div>
+                    </TableCell>
+                    <TableCell>{worker.phone}</TableCell>
+                    <TableCell>{worker.skills.join(', ')}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center">
+                        {worker.rating}
+                        <span className="text-yellow-500 ml-1">★</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <span className={`px-2 py-1 rounded-full text-xs ${
+                        worker.status === 'active' ? 'bg-green-100 text-green-800' : 
+                        worker.status === 'inactive' ? 'bg-red-100 text-red-800' : 
+                        'bg-yellow-100 text-yellow-800'
+                      }`}>
+                        {worker.status === 'active' ? 'Active' : 
+                        worker.status === 'inactive' ? 'Inactive' : 'Pending'}
+                      </span>
+                    </TableCell>
+                    <TableCell>{worker.location}</TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        {worker.status === 'pending' ? (
+                          <>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              className="border-green-500 hover:bg-green-50 text-green-600"
+                              onClick={() => approveWorker(worker.id)}
+                            >
+                              Approve
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              className="border-red-500 hover:bg-red-50 text-red-600"
+                              onClick={() => rejectWorker(worker.id)}
+                            >
+                              Reject
+                            </Button>
+                          </>
+                        ) : (
+                          <>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={() => {
+                                setSelectedWorker(worker);
+                                setDialogOpen(true);
+                              }}
+                              className="flex items-center gap-1"
+                            >
+                              <UserCheck className="h-4 w-4" />
+                              Assign
+                            </Button>
+                            <Button variant="outline" size="sm">View</Button>
+                          </>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+          
+          {filteredWorkers.length === 0 && (
+            <div className="py-8 text-center text-muted-foreground">
+              No workers found matching your search criteria.
+            </div>
+          )}
         </CardContent>
       </Card>
 
