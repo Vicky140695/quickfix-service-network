@@ -4,6 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import WalletWidget from './WalletWidget';
+import ReferralWidget from './ReferralWidget';
 
 const services = [
   { id: 'electrical', name: 'Electrical', icon: '⚡' },
@@ -47,6 +49,11 @@ const CustomerDashboard: React.FC = () => {
             </Card>
           ))}
         </div>
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        <WalletWidget />
+        <ReferralWidget />
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
