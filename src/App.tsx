@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -9,6 +8,7 @@ import { UserProvider } from "./contexts/UserContext";
 import { WalletProvider } from "./contexts/WalletContext";
 import { useEffect } from "react";
 import { toast } from "sonner";
+import SupabaseStatusBanner from "./components/SupabaseStatusBanner";
 
 // Pages
 import Index from "./pages/Index";
@@ -135,6 +135,9 @@ const App = () => (
             <EnvChecker />
             <Toaster />
             <Sonner />
+            <div className="container mx-auto px-4 py-2">
+              <SupabaseStatusBanner />
+            </div>
             <Routes>
               <Route path="/" element={<Index />} />
               
