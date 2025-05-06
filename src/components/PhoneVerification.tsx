@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -9,6 +10,7 @@ import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { PhoneIcon, Check, X, RefreshCw, Loader } from 'lucide-react';
 import { sendOTP, verifyOTP } from '@/services/authService';
+import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 
 interface PhoneVerificationProps {
   workerRoute?: string;
@@ -83,18 +85,21 @@ const PhoneVerification: React.FC<PhoneVerificationProps> = ({
     setIsLoading(true);
     
     try {
+      console.log("Sending OTP to:", phoneNumber);
       const result = await sendOTP(phoneNumber);
+      console.log("OTP send result:", result);
       
       if (result.success && result.verificationId) {
         setVerificationId(result.verificationId);
         toast.success("OTP sent successfully! Check your phone.");
-        toast.info("For testing: Check console for the test OTP (123456)");
+        toast.info("For testing: OTP code is 123456");
         setShowOtpInput(true);
         startResendTimer();
       } else {
         toast.error(result.error || "Failed to send OTP. Please try again.");
       }
     } catch (error) {
+      console.error("Error sending OTP:", error);
       toast.error("Service unavailable. Please try again later.");
     } finally {
       setIsLoading(false);
@@ -115,7 +120,9 @@ const PhoneVerification: React.FC<PhoneVerificationProps> = ({
     setIsLoading(true);
     
     try {
+      console.log("Verifying OTP:", otp, "for phone:", phoneNumber);
       const result = await verifyOTP(phoneNumber, otp, role);
+      console.log("OTP verification result:", result);
       
       if (result.success) {
         setIsVerified(true);
@@ -131,6 +138,7 @@ const PhoneVerification: React.FC<PhoneVerificationProps> = ({
         toast.error(result.error || "Invalid OTP. Please try again.");
       }
     } catch (error) {
+      console.error("Error verifying OTP:", error);
       toast.error("Verification failed. Please try again.");
     } finally {
       setIsLoading(false);
@@ -210,7 +218,7 @@ const PhoneVerification: React.FC<PhoneVerificationProps> = ({
                 <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
                   <p className="text-xs text-yellow-700">
                     <strong>Developer Note:</strong> This is a demonstration of OTP functionality. 
-                    For testing purposes, the OTP code "123456" will work. Check console logs for details.
+                    For testing purposes, the OTP code "123456" will work.
                   </p>
                 </div>
               </div>
@@ -221,37 +229,18 @@ const PhoneVerification: React.FC<PhoneVerificationProps> = ({
                     {t('enter_otp')}
                   </label>
                   <div className="flex justify-center mb-2">
-                    <div className="flex space-x-2">
-                      {[0, 1, 2, 3, 4, 5].map((index) => (
-                        <Input
-                          key={index}
-                          type="text"
-                          inputMode="numeric"
-                          pattern="[0-9]*"
-                          maxLength={1}
-                          className="w-10 h-10 text-center text-lg"
-                          value={otp[index] || ''}
-                          onChange={(e) => {
-                            const newOtp = otp.split('');
-                            newOtp[index] = e.target.value.slice(-1);
-                            setOtp(newOtp.join(''));
-                            
-                            // Auto-focus next input
-                            if (e.target.value && index < 5) {
-                              const nextInput = e.target.parentElement?.nextElementSibling?.querySelector('input');
-                              if (nextInput) nextInput.focus();
-                            }
-                          }}
-                          onKeyDown={(e) => {
-                            // Handle backspace to go to previous input
-                            if (e.key === 'Backspace' && !otp[index] && index > 0) {
-                              const prevInput = e.currentTarget.parentElement?.previousElementSibling?.querySelector('input');
-                              if (prevInput) prevInput.focus();
-                            }
-                          }}
-                        />
-                      ))}
-                    </div>
+                    <InputOTP
+                      maxLength={6}
+                      value={otp}
+                      onChange={setOtp}
+                      render={({ slots }) => (
+                        <InputOTPGroup className="gap-2">
+                          {slots.map((slot, index) => (
+                            <InputOTPSlot key={index} {...slot} index={index} />
+                          ))}
+                        </InputOTPGroup>
+                      )}
+                    />
                   </div>
                   <p className="text-sm text-center text-gray-500">A 6-digit code has been sent to your phone</p>
                   <p className="text-xs text-center text-blue-500 mt-1">

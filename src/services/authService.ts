@@ -1,29 +1,22 @@
 
-import { supabase, handleSupabaseError } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 // Simulated OTP for testing purposes (in production this would come from SMS provider)
 const TEST_OTP = '123456';
 
+// Handle Supabase errors in a consistent way
+export const handleSupabaseError = (error: any) => {
+  console.error('Supabase error:', error);
+  const errorMessage = error?.message || 'An unexpected error occurred';
+  return errorMessage;
+};
+
 // Phone authentication with Supabase using phone_confirm strategy
 export const sendOTP = async (phoneNumber: string) => {
   try {
-    // First check if the phone number already exists
-    const { data: existingUser, error: userCheckError } = await supabase
-      .from('users')
-      .select('phone_number')
-      .eq('phone_number', phoneNumber)
-      .maybeSingle();
-
-    // If there's an error checking user existence
-    if (userCheckError) {
-      console.error('Error checking existing user:', userCheckError);
-      return {
-        success: false,
-        error: 'Failed to check phone number. Please try again.'
-      };
-    }
-
+    console.log('Attempting to send OTP to:', phoneNumber);
+    
     // For demo purposes, we're using a test OTP
     // In a real app, this would use Supabase auth.signInWithOtp()
     console.log(`🔒 Test OTP for ${phoneNumber}: ${TEST_OTP}`);
@@ -70,6 +63,8 @@ export const verifyOTP = async (
       };
     }
     
+    console.log(`OTP verification successful for ${phoneNumber}`);
+    
     // In a real app, we would verify with Supabase using the token
     // For demo, we'll sign in with email+password using a derived email
     
@@ -78,121 +73,145 @@ export const verifyOTP = async (
     const pseudoEmail = `${phoneNumber.replace(/[^0-9]/g, '')}@quickfix.example.com`;
     const password = `${phoneNumber.replace(/[^0-9]/g, '')}_secure_pwd`;
     
-    // Check if user exists
-    const { data: existingUser } = await supabase
-      .from('users')
-      .select('id, role')
-      .eq('phone_number', phoneNumber)
-      .maybeSingle();
-    
-    if (existingUser) {
-      // User exists, sign them in
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: pseudoEmail,
-        password: password
-      });
+    try {
+      // Check if user exists
+      console.log('Checking if user exists with phone:', phoneNumber);
+      const { data: existingUser, error: userCheckError } = await supabase
+        .from('users')
+        .select('id, role')
+        .eq('phone_number', phoneNumber)
+        .maybeSingle();
       
-      if (error) {
-        console.error('Sign in error:', error);
+      if (userCheckError) {
+        console.error('Error checking existing user:', userCheckError);
         return {
           success: false,
-          error: 'Authentication failed. Please try again.'
+          error: 'Failed to verify user. Please try again.'
         };
       }
       
-      return {
-        success: true,
-        user: data.user,
-        role: existingUser.role
-      };
-    } else {
-      // Create new user
-      if (!role) {
-        return {
-          success: false,
-          error: 'User role is required for registration.'
-        };
-      }
-      
-      // Register with Supabase Auth
-      const { data, error } = await supabase.auth.signUp({
-        email: pseudoEmail,
-        password: password,
-        options: {
-          data: {
-            phone_number: phoneNumber
-          }
-        }
-      });
-      
-      if (error) {
-        console.error('Sign up error:', error);
-        return {
-          success: false,
-          error: 'Registration failed. Please try again.'
-        };
-      }
-      
-      // Create user record in our users table
-      if (data.user) {
-        const { error: insertError } = await supabase
-          .from('users')
-          .insert({
-            id: data.user.id,
-            phone_number: phoneNumber,
-            role: role,
-            is_verified: true
-          });
+      if (existingUser) {
+        console.log('User exists, signing in:', existingUser);
+        // User exists, sign them in
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: pseudoEmail,
+          password: password
+        });
         
-        if (insertError) {
-          console.error('User insert error:', insertError);
-          // If we can't create a user record, delete the auth user
-          await supabase.auth.admin.deleteUser(data.user.id);
+        if (error) {
+          console.error('Sign in error:', error);
           return {
             success: false,
-            error: 'User registration failed. Please try again.'
+            error: 'Authentication failed. Please try again.'
           };
         }
         
-        // If the user is a worker, create an initial worker profile
-        if (role === 'worker') {
-          const { error: workerProfileError } = await supabase
-            .from('worker_profiles')
+        return {
+          success: true,
+          user: data.user,
+          role: existingUser.role
+        };
+      } else {
+        console.log('User does not exist, creating new user with role:', role);
+        // Create new user
+        if (!role) {
+          return {
+            success: false,
+            error: 'User role is required for registration.'
+          };
+        }
+        
+        // Register with Supabase Auth
+        const { data, error } = await supabase.auth.signUp({
+          email: pseudoEmail,
+          password: password,
+          options: {
+            data: {
+              phone_number: phoneNumber
+            }
+          }
+        });
+        
+        if (error) {
+          console.error('Sign up error:', error);
+          return {
+            success: false,
+            error: 'Registration failed. Please try again.'
+          };
+        }
+        
+        // Create user record in our users table
+        if (data.user) {
+          console.log('Creating user record in users table:', data.user.id);
+          const { error: insertError } = await supabase
+            .from('users')
             .insert({
-              user_id: data.user.id,
-              skills: [],
-              aadhaar_verified: false,
-              kyc_status: 'pending',
-              available: true,
-              payment_completed: false,
-              agreed_to_terms: false
+              id: data.user.id,
+              phone_number: phoneNumber,
+              role: role,
+              is_verified: true
             });
           
-          if (workerProfileError) {
-            console.error('Worker profile creation error:', workerProfileError);
+          if (insertError) {
+            console.error('User insert error:', insertError);
+            // If we can't create a user record, delete the auth user
+            const { error: deleteError } = await supabase.auth.admin.deleteUser(data.user.id);
+            if (deleteError) console.error('Error deleting auth user:', deleteError);
+            
+            return {
+              success: false,
+              error: 'User registration failed. Please try again.'
+            };
+          }
+          
+          // If the user is a worker, create an initial worker profile
+          if (role === 'worker') {
+            console.log('Creating worker profile for:', data.user.id);
+            const { error: workerProfileError } = await supabase
+              .from('worker_profiles')
+              .insert({
+                user_id: data.user.id,
+                skills: [],
+                aadhaar_verified: false,
+                kyc_status: 'pending',
+                available: true,
+                payment_completed: false,
+                agreed_to_terms: false
+              });
+            
+            if (workerProfileError) {
+              console.error('Worker profile creation error:', workerProfileError);
+            }
+          }
+          
+          // Initialize wallet for the user
+          const referralCode = generateReferralCode();
+          console.log('Creating wallet with referral code:', referralCode);
+          const { error: walletError } = await supabase
+            .from('wallet')
+            .insert({
+              user_id: data.user.id,
+              balance: 0,
+              referral_code: referralCode
+            });
+            
+          if (walletError) {
+            console.error('Wallet creation error:', walletError);
           }
         }
         
-        // Initialize wallet for the user
-        const referralCode = generateReferralCode();
-        const { error: walletError } = await supabase
-          .from('wallet')
-          .insert({
-            user_id: data.user.id,
-            balance: 0,
-            referral_code: referralCode
-          });
-          
-        if (walletError) {
-          console.error('Wallet creation error:', walletError);
-        }
+        return {
+          success: true,
+          user: data.user,
+          role: role,
+          isNewUser: true
+        };
       }
-      
+    } catch (dbError) {
+      console.error('Database interaction error:', dbError);
       return {
-        success: true,
-        user: data.user,
-        role: role,
-        isNewUser: true
+        success: false,
+        error: 'Database error. Please try again.'
       };
     }
     
