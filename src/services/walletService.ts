@@ -1,29 +1,31 @@
 
-// Wallet service for managing QuickFix coins
+import { supabase, handleSupabaseError } from '@/lib/supabase';
 import { toast } from 'sonner';
 
 export interface WalletTransaction {
   id: string;
-  userId: string;
-  amount: number; // Amount in QuickFix coins
+  user_id: string;
+  amount: number;
   type: 'credit' | 'debit';
   source: 'referral' | 'payment' | 'redemption';
-  referredUserId?: string;
-  serviceId?: string;
-  timestamp: number;
+  referred_user_id?: string;
+  service_id?: string;
   description: string;
+  created_at: string;
 }
 
 export interface Wallet {
-  userId: string;
-  balance: number; // In QuickFix coins
-  transactions: WalletTransaction[];
-  referralCode: string;
+  id: string;
+  user_id: string;
+  balance: number;
+  referral_code: string;
+  created_at: string;
+  transactions?: WalletTransaction[];
 }
 
 // Generate a unique referral code
 export const generateReferralCode = (length: number = 6): string => {
-  const characters = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Excluding confusing characters like 0, O, 1, I
+  const characters = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Excluding confusing characters
   let result = '';
   
   for (let i = 0; i < length; i++) {
@@ -33,167 +35,210 @@ export const generateReferralCode = (length: number = 6): string => {
   return result;
 };
 
-// Initialize or get wallet
-export const getWallet = (userId: string): Wallet => {
+// Get wallet for a user
+export const getWallet = async (userId: string): Promise<Wallet | null> => {
   try {
-    const walletString = localStorage.getItem(`wallet-${userId}`);
-    if (walletString) {
-      return JSON.parse(walletString);
+    // Get wallet data
+    const { data: walletData, error: walletError } = await supabase
+      .from('wallet')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
+      
+    if (walletError) {
+      console.error('Error fetching wallet:', walletError);
+      toast.error('Error accessing wallet');
+      return null;
     }
     
-    // Create new wallet if it doesn't exist
-    const newWallet: Wallet = {
-      userId,
-      balance: 0,
-      transactions: [],
-      referralCode: generateReferralCode()
-    };
+    // Get transactions
+    const { data: transactions, error: txError } = await supabase
+      .from('transactions')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
     
-    localStorage.setItem(`wallet-${userId}`, JSON.stringify(newWallet));
-    return newWallet;
-  } catch (error) {
-    console.error("Error getting wallet:", error);
-    toast.error("Error accessing wallet");
+    if (txError) {
+      console.error('Error fetching transactions:', txError);
+    }
     
-    // Return empty wallet on error
     return {
-      userId,
-      balance: 0,
-      transactions: [],
-      referralCode: generateReferralCode()
+      ...walletData,
+      transactions: transactions || []
     };
+  } catch (error) {
+    console.error('Error getting wallet:', error);
+    toast.error('Error accessing wallet');
+    return null;
   }
 };
 
 // Add transaction to wallet
-export const addTransaction = (userId: string, transaction: Omit<WalletTransaction, 'id' | 'timestamp'>): WalletTransaction => {
+export const addTransaction = async (transaction: Omit<WalletTransaction, 'id' | 'created_at'>): Promise<WalletTransaction | null> => {
   try {
-    const wallet = getWallet(userId);
+    // Start a transaction
+    const { data: walletData, error: walletError } = await supabase
+      .from('wallet')
+      .select('balance')
+      .eq('user_id', transaction.user_id)
+      .single();
     
-    const newTransaction: WalletTransaction = {
-      ...transaction,
-      id: `txn-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-      timestamp: Date.now()
-    };
+    if (walletError) {
+      toast.error('Wallet not found');
+      return null;
+    }
+    
+    let newBalance = walletData.balance;
     
     // Update balance
     if (transaction.type === 'credit') {
-      wallet.balance += transaction.amount;
+      newBalance += transaction.amount;
     } else {
-      if (wallet.balance < transaction.amount) {
-        throw new Error("Insufficient balance");
+      if (walletData.balance < transaction.amount) {
+        toast.error('Insufficient balance');
+        return null;
       }
-      wallet.balance -= transaction.amount;
+      newBalance -= transaction.amount;
     }
     
-    wallet.transactions.push(newTransaction);
-    localStorage.setItem(`wallet-${userId}`, JSON.stringify(wallet));
+    // Update wallet balance
+    const { error: updateError } = await supabase
+      .from('wallet')
+      .update({ balance: newBalance })
+      .eq('user_id', transaction.user_id);
+    
+    if (updateError) {
+      toast.error('Failed to update wallet balance');
+      return null;
+    }
+    
+    // Insert transaction record
+    const { data: newTransaction, error: txError } = await supabase
+      .from('transactions')
+      .insert(transaction)
+      .select()
+      .single();
+    
+    if (txError) {
+      // Rollback wallet balance
+      await supabase
+        .from('wallet')
+        .update({ balance: walletData.balance })
+        .eq('user_id', transaction.user_id);
+        
+      toast.error('Transaction failed');
+      return null;
+    }
     
     return newTransaction;
   } catch (error) {
-    console.error("Error adding transaction:", error);
-    toast.error(error instanceof Error ? error.message : "Transaction failed");
-    throw error;
+    console.error('Error adding transaction:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Transaction failed';
+    toast.error(errorMessage);
+    return null;
   }
 };
 
 // Add coins for referral (50 coins)
-export const addReferralReward = (userId: string, referredUserId: string): WalletTransaction | null => {
+export const addReferralReward = async (userId: string, referredUserId: string): Promise<WalletTransaction | null> => {
   try {
     // Check if this referral has been rewarded already
-    const wallet = getWallet(userId);
-    const existingReferral = wallet.transactions.find(
-      t => t.source === 'referral' && t.referredUserId === referredUserId
-    );
+    const { data: existingReferral, error: checkError } = await supabase
+      .from('transactions')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('source', 'referral')
+      .eq('referred_user_id', referredUserId)
+      .maybeSingle();
+    
+    if (checkError) {
+      console.error('Error checking referral:', checkError);
+      return null;
+    }
     
     if (existingReferral) {
       // Referral already rewarded
       return null;
     }
     
-    return addTransaction(userId, {
-      userId,
+    return await addTransaction({
+      user_id: userId,
       amount: 50, // 50 QuickFix coins
       type: 'credit',
       source: 'referral',
-      referredUserId,
+      referred_user_id: referredUserId,
       description: 'Referral reward - new user registration'
     });
   } catch (error) {
-    console.error("Error adding referral reward:", error);
+    console.error('Error adding referral reward:', error);
     return null;
   }
 };
 
 // Add coins for payment (1% of bill amount)
-export const addPaymentReward = (userId: string, serviceId: string, billAmount: number): WalletTransaction => {
+export const addPaymentReward = async (userId: string, serviceId: string, billAmount: number): Promise<WalletTransaction | null> => {
   const rewardAmount = Math.floor(billAmount * 0.01); // 1% of bill amount
   
-  return addTransaction(userId, {
-    userId,
+  return await addTransaction({
+    user_id: userId,
     amount: rewardAmount,
     type: 'credit',
     source: 'payment',
-    serviceId,
+    service_id: serviceId,
     description: `Payment reward - 1% of bill ₹${billAmount}`
   });
 };
 
 // Use coins for bill payment
-export const useCoinsForPayment = (userId: string, serviceId: string, amount: number): WalletTransaction => {
-  return addTransaction(userId, {
-    userId,
+export const useCoinsForPayment = async (userId: string, serviceId: string, amount: number): Promise<WalletTransaction | null> => {
+  return await addTransaction({
+    user_id: userId,
     amount,
     type: 'debit',
     source: 'redemption',
-    serviceId,
+    service_id: serviceId,
     description: `Used coins for service payment - ₹${amount}`
   });
 };
 
-// Check if a user was referred
-export const validateReferralCode = (referralCode: string): boolean => {
-  // In a real app, this would check against the database of valid referral codes
-  // For now, we'll simulate by checking the localStorage for any wallet with this code
+// Validate referral code
+export const validateReferralCode = async (referralCode: string): Promise<boolean> => {
   try {
-    // Get all localStorage keys
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && key.startsWith('wallet-')) {
-        const walletData = localStorage.getItem(key);
-        if (walletData) {
-          const wallet = JSON.parse(walletData);
-          if (wallet.referralCode === referralCode) {
-            return true;
-          }
-        }
-      }
+    const { data, error } = await supabase
+      .from('wallet')
+      .select('id')
+      .eq('referral_code', referralCode)
+      .maybeSingle();
+      
+    if (error) {
+      console.error('Error validating referral code:', error);
+      return false;
     }
-    return false;
+    
+    return !!data;
   } catch (error) {
-    console.error("Error validating referral code:", error);
+    console.error('Error validating referral code:', error);
     return false;
   }
 };
 
 // Get the user ID from a referral code
-export const getUserIdFromReferralCode = (referralCode: string): string | null => {
+export const getUserIdFromReferralCode = async (referralCode: string): Promise<string | null> => {
   try {
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && key.startsWith('wallet-')) {
-        const walletData = localStorage.getItem(key);
-        if (walletData) {
-          const wallet = JSON.parse(walletData);
-          if (wallet.referralCode === referralCode) {
-            return wallet.userId;
-          }
-        }
-      }
+    const { data, error } = await supabase
+      .from('wallet')
+      .select('user_id')
+      .eq('referral_code', referralCode)
+      .maybeSingle();
+      
+    if (error || !data) {
+      console.error('Error getting userId from referral code:', error);
+      return null;
     }
-    return null;
+    
+    return data.user_id;
   } catch (error) {
-    console.error("Error getting userId from referral code:", error);
+    console.error('Error getting userId from referral code:', error);
     return null;
   }
 };

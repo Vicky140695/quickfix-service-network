@@ -1,4 +1,5 @@
 
+import { supabase, handleSupabaseError } from '@/lib/supabase';
 import { toast } from 'sonner';
 
 // Types
@@ -7,25 +8,33 @@ export interface Booking {
   service: string | undefined;
   address: string;
   description: string;
-  bookingType: 'self' | 'other';
-  timePreference: 'now' | 'later';
-  scheduledDateTime: string;
-  contactName?: string;
-  contactPhone?: string;
+  booking_type: 'self' | 'other';
+  time_preference: 'now' | 'later';
+  scheduled_date_time: string;
+  contact_name?: string;
+  contact_phone?: string;
   status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
-  createdAt: number;
-  workerId?: string;
-  workerName?: string;
+  created_at: string;
+  customer_id: string;
+  worker_id?: string;
+  worker_name?: string;
 }
 
-// Local storage key
-const BOOKINGS_KEY = 'quickfix-bookings';
-
 // Get all bookings
-export const getBookings = (): Booking[] => {
+export const getBookings = async (): Promise<Booking[]> => {
   try {
-    const storedBookings = localStorage.getItem(BOOKINGS_KEY);
-    return storedBookings ? JSON.parse(storedBookings) : [];
+    const { data, error } = await supabase
+      .from('bookings')
+      .select('*')
+      .order('created_at', { ascending: false });
+      
+    if (error) {
+      console.error("Error getting bookings:", error);
+      toast.error("Failed to load bookings");
+      return [];
+    }
+    
+    return data || [];
   } catch (error) {
     console.error("Error getting bookings:", error);
     toast.error("Failed to load bookings");
@@ -34,11 +43,21 @@ export const getBookings = (): Booking[] => {
 };
 
 // Get a single booking by ID
-export const getBookingById = (id: string): Booking | null => {
+export const getBookingById = async (id: string): Promise<Booking | null> => {
   try {
-    const bookings = getBookings();
-    const booking = bookings.find(b => b.id === id);
-    return booking || null;
+    const { data, error } = await supabase
+      .from('bookings')
+      .select('*')
+      .eq('id', id)
+      .single();
+      
+    if (error) {
+      console.error("Error getting booking by ID:", error);
+      toast.error("Failed to load booking details");
+      return null;
+    }
+    
+    return data;
   } catch (error) {
     console.error("Error getting booking by ID:", error);
     toast.error("Failed to load booking details");
@@ -47,40 +66,50 @@ export const getBookingById = (id: string): Booking | null => {
 };
 
 // Save a new booking
-export const saveBooking = (bookingData: Omit<Booking, 'id' | 'status' | 'createdAt'>): Booking => {
+export const saveBooking = async (
+  bookingData: Omit<Booking, 'id' | 'status' | 'created_at' | 'customer_id'>, 
+  customerId: string
+): Promise<Booking | null> => {
   try {
-    const bookings = getBookings();
-    
-    const newBooking: Booking = {
+    const newBooking = {
       ...bookingData,
-      id: `booking-${Date.now()}`,
-      status: 'pending',
-      createdAt: Date.now()
+      customer_id: customerId,
+      status: 'pending'
     };
     
-    bookings.push(newBooking);
-    localStorage.setItem(BOOKINGS_KEY, JSON.stringify(bookings));
+    const { data, error } = await supabase
+      .from('bookings')
+      .insert(newBooking)
+      .select()
+      .single();
+      
+    if (error) {
+      console.error("Error saving booking:", error);
+      toast.error("Failed to save booking");
+      throw error;
+    }
     
-    return newBooking;
+    return data;
   } catch (error) {
     console.error("Error saving booking:", error);
     toast.error("Failed to save booking");
-    throw error;
+    return null;
   }
 };
 
 // Update booking status
-export const updateBookingStatus = (id: string, status: Booking['status']): boolean => {
+export const updateBookingStatus = async (id: string, status: Booking['status']): Promise<boolean> => {
   try {
-    const bookings = getBookings();
-    const index = bookings.findIndex(b => b.id === id);
-    
-    if (index === -1) {
+    const { error } = await supabase
+      .from('bookings')
+      .update({ status })
+      .eq('id', id);
+      
+    if (error) {
+      console.error("Error updating booking status:", error);
+      toast.error("Failed to update booking status");
       return false;
     }
-    
-    bookings[index].status = status;
-    localStorage.setItem(BOOKINGS_KEY, JSON.stringify(bookings));
     
     return true;
   } catch (error) {
@@ -91,23 +120,26 @@ export const updateBookingStatus = (id: string, status: Booking['status']): bool
 };
 
 // Assign worker to booking
-export const assignWorkerToBooking = (
+export const assignWorkerToBooking = async (
   bookingId: string, 
   workerId: string, 
   workerName: string
-): boolean => {
+): Promise<boolean> => {
   try {
-    const bookings = getBookings();
-    const index = bookings.findIndex(b => b.id === bookingId);
-    
-    if (index === -1) {
+    const { error } = await supabase
+      .from('bookings')
+      .update({
+        worker_id: workerId,
+        worker_name: workerName,
+        status: 'confirmed'
+      })
+      .eq('id', bookingId);
+      
+    if (error) {
+      console.error("Error assigning worker:", error);
+      toast.error("Failed to assign worker");
       return false;
     }
-    
-    bookings[index].workerId = workerId;
-    bookings[index].workerName = workerName;
-    bookings[index].status = 'confirmed';
-    localStorage.setItem(BOOKINGS_KEY, JSON.stringify(bookings));
     
     return true;
   } catch (error) {
@@ -118,19 +150,46 @@ export const assignWorkerToBooking = (
 };
 
 // Get user's bookings
-export const getUserBookings = (userId: string): Booking[] => {
-  // This is a placeholder - in a real app, you'd filter by userId
-  // Since we're simulating a backend, we'll just return all bookings
-  return getBookings();
+export const getUserBookings = async (userId: string): Promise<Booking[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('bookings')
+      .select('*')
+      .or(`customer_id.eq.${userId},worker_id.eq.${userId}`)
+      .order('created_at', { ascending: false });
+      
+    if (error) {
+      console.error("Error getting user bookings:", error);
+      toast.error("Failed to load your bookings");
+      return [];
+    }
+    
+    return data || [];
+  } catch (error) {
+    console.error("Error getting user bookings:", error);
+    toast.error("Failed to load your bookings");
+    return [];
+  }
 };
 
 // Admin functions
 
 // Get bookings by status
-export const getBookingsByStatus = (status: Booking['status']): Booking[] => {
+export const getBookingsByStatus = async (status: Booking['status']): Promise<Booking[]> => {
   try {
-    const bookings = getBookings();
-    return bookings.filter(b => b.status === status);
+    const { data, error } = await supabase
+      .from('bookings')
+      .select('*')
+      .eq('status', status)
+      .order('created_at', { ascending: false });
+      
+    if (error) {
+      console.error("Error filtering bookings by status:", error);
+      toast.error("Failed to filter bookings");
+      return [];
+    }
+    
+    return data || [];
   } catch (error) {
     console.error("Error filtering bookings by status:", error);
     toast.error("Failed to filter bookings");
@@ -139,12 +198,24 @@ export const getBookingsByStatus = (status: Booking['status']): Booking[] => {
 };
 
 // Get recent bookings (last 7 days)
-export const getRecentBookings = (): Booking[] => {
+export const getRecentBookings = async (): Promise<Booking[]> => {
   try {
-    const bookings = getBookings();
-    const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
-    return bookings.filter(b => b.createdAt >= sevenDaysAgo)
-      .sort((a, b) => b.createdAt - a.createdAt);
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    
+    const { data, error } = await supabase
+      .from('bookings')
+      .select('*')
+      .gte('created_at', sevenDaysAgo.toISOString())
+      .order('created_at', { ascending: false });
+      
+    if (error) {
+      console.error("Error getting recent bookings:", error);
+      toast.error("Failed to load recent bookings");
+      return [];
+    }
+    
+    return data || [];
   } catch (error) {
     console.error("Error getting recent bookings:", error);
     toast.error("Failed to load recent bookings");
@@ -153,17 +224,32 @@ export const getRecentBookings = (): Booking[] => {
 };
 
 // Get booking statistics
-export const getBookingStatistics = () => {
+export const getBookingStatistics = async () => {
   try {
-    const bookings = getBookings();
+    const { data: bookings, error } = await supabase
+      .from('bookings')
+      .select('status');
+      
+    if (error) {
+      console.error("Error calculating booking statistics:", error);
+      toast.error("Failed to calculate booking statistics");
+      return {
+        total: 0,
+        pending: { count: 0, change: 0 },
+        confirmed: { count: 0, change: 0 },
+        completed: { count: 0, change: 0 },
+        cancelled: { count: 0, change: 0 },
+      };
+    }
     
-    const total = bookings.length;
-    const pending = bookings.filter(b => b.status === 'pending').length;
-    const confirmed = bookings.filter(b => b.status === 'confirmed').length;
-    const completed = bookings.filter(b => b.status === 'completed').length;
-    const cancelled = bookings.filter(b => b.status === 'cancelled').length;
+    const total = bookings?.length || 0;
+    const pending = bookings?.filter(b => b.status === 'pending').length || 0;
+    const confirmed = bookings?.filter(b => b.status === 'confirmed').length || 0;
+    const completed = bookings?.filter(b => b.status === 'completed').length || 0;
+    const cancelled = bookings?.filter(b => b.status === 'cancelled').length || 0;
     
-    // Calculate percentage changes (demo data)
+    // For demonstration, we'll use fixed percentage changes
+    // In a real app, you'd compare with previous period statistics
     const pendingChange = 5;
     const confirmedChange = 12;
     const completedChange = 18;
@@ -190,17 +276,19 @@ export const getBookingStatistics = () => {
 };
 
 // Delete a booking
-export const deleteBooking = (id: string): boolean => {
+export const deleteBooking = async (id: string): Promise<boolean> => {
   try {
-    const bookings = getBookings();
-    const filteredBookings = bookings.filter(b => b.id !== id);
-    
-    if (filteredBookings.length === bookings.length) {
-      // No booking was removed
+    const { error } = await supabase
+      .from('bookings')
+      .delete()
+      .eq('id', id);
+      
+    if (error) {
+      console.error("Error deleting booking:", error);
+      toast.error("Failed to delete booking");
       return false;
     }
     
-    localStorage.setItem(BOOKINGS_KEY, JSON.stringify(filteredBookings));
     return true;
   } catch (error) {
     console.error("Error deleting booking:", error);

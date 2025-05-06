@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -9,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { PhoneIcon, Check, X, RefreshCw, Loader } from 'lucide-react';
+import { sendOTP, verifyOTP } from '@/services/authService';
 
 interface PhoneVerificationProps {
   workerRoute?: string;
@@ -22,7 +22,7 @@ const PhoneVerification: React.FC<PhoneVerificationProps> = ({
   skipRoute
 }) => {
   const { t } = useLanguage();
-  const { role, phoneNumber, setPhoneNumber, setIsVerified, userProfile } = useUser();
+  const { role, phoneNumber, setPhoneNumber, setIsVerified } = useUser();
   const navigate = useNavigate();
   
   const [showOtpInput, setShowOtpInput] = useState(false);
@@ -74,61 +74,6 @@ const PhoneVerification: React.FC<PhoneVerificationProps> = ({
     setResendTimer(30); // 30 seconds cooldown
   };
 
-  const sendRealOtp = async (phoneNumber: string): Promise<{ success: boolean, verificationId?: string, error?: string }> => {
-    try {
-      // This would be the actual API call to your SMS service
-      // For demonstration purposes, we're still using a timeout
-      // In a real application, this would be an API call to your backend
-      
-      // Simulating API call with timeout
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          // Generate a fake verification ID (in a real system, this would come from SMS provider)
-          const fakeVerificationId = 'VID-' + Math.random().toString(36).substring(2, 10);
-          
-          // Log the OTP for testing (in production, you'd never log this)
-          const testOtp = '123456';
-          console.log(`🔒 Test OTP for ${phoneNumber}: ${testOtp}`);
-          
-          resolve({
-            success: true,
-            verificationId: fakeVerificationId
-          });
-        }, 1500);
-      });
-    } catch (error) {
-      return { 
-        success: false, 
-        error: 'Failed to send OTP. Service currently unavailable.' 
-      };
-    }
-  };
-  
-  const verifyRealOtp = async (verificationId: string, otp: string): Promise<{ success: boolean, error?: string }> => {
-    try {
-      // This would be the actual API call to verify the OTP
-      // For demonstration purposes, we'll accept any 6-digit code with the test code provided in console
-      
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          // In a real system, this would verify against the SMS provider
-          // For testing, we'll accept '123456' as valid
-          const isValid = otp === '123456';
-          
-          resolve({
-            success: isValid,
-            error: !isValid ? 'Invalid OTP. Please check and try again.' : undefined
-          });
-        }, 1500);
-      });
-    } catch (error) {
-      return { 
-        success: false, 
-        error: 'Failed to verify OTP. Please try again.' 
-      };
-    }
-  };
-
   const handleSendOtp = async () => {
     if (!phoneNumber || phoneNumber.length < 13) { // +91 + 10 digits
       toast.error("Please enter a valid phone number");
@@ -138,7 +83,7 @@ const PhoneVerification: React.FC<PhoneVerificationProps> = ({
     setIsLoading(true);
     
     try {
-      const result = await sendRealOtp(phoneNumber);
+      const result = await sendOTP(phoneNumber);
       
       if (result.success && result.verificationId) {
         setVerificationId(result.verificationId);
@@ -170,7 +115,7 @@ const PhoneVerification: React.FC<PhoneVerificationProps> = ({
     setIsLoading(true);
     
     try {
-      const result = await verifyRealOtp(verificationId, otp);
+      const result = await verifyOTP(phoneNumber, otp, role);
       
       if (result.success) {
         setIsVerified(true);
