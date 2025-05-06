@@ -15,7 +15,7 @@ const ReferralWidget: React.FC = () => {
     
     try {
       setCopying(true);
-      await navigator.clipboard.writeText(`Join me on QuickFix! Use my referral code: ${wallet.referralCode} to get started. https://quickfix.com/signup?ref=${wallet.referralCode}`);
+      await navigator.clipboard.writeText(`Join me on QuickFix! Use my referral code: ${wallet.referral_code} to get started. https://quickfix.com/signup?ref=${wallet.referral_code}`);
       toast.success("Referral link copied to clipboard!");
     } catch (error) {
       toast.error("Failed to copy referral link");
@@ -31,8 +31,8 @@ const ReferralWidget: React.FC = () => {
       if (navigator.share) {
         await navigator.share({
           title: 'Join me on QuickFix',
-          text: `Use my referral code: ${wallet.referralCode} to get started.`,
-          url: `https://quickfix.com/signup?ref=${wallet.referralCode}`
+          text: `Use my referral code: ${wallet.referral_code} to get started.`,
+          url: `https://quickfix.com/signup?ref=${wallet.referral_code}`
         });
       } else {
         toast.info("Sharing not supported on this device");
@@ -74,7 +74,7 @@ const ReferralWidget: React.FC = () => {
         
         <div className="relative">
           <Input 
-            value={wallet.referralCode} 
+            value={wallet.referral_code} 
             readOnly 
             className="bg-gray-50 pr-24"
           />

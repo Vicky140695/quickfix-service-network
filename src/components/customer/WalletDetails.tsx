@@ -69,13 +69,13 @@ const WalletDetails: React.FC = () => {
               {wallet.transactions.length > 0 ? (
                 <div className="space-y-2 max-h-96 overflow-y-auto">
                   {wallet.transactions
-                    .sort((a, b) => b.timestamp - a.timestamp)
+                    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
                     .map((transaction) => (
                     <div key={transaction.id} className="flex justify-between p-3 border rounded-md">
                       <div>
                         <p className="font-medium">{transaction.description}</p>
                         <p className="text-xs text-gray-500">
-                          {new Date(transaction.timestamp).toLocaleString()}
+                          {new Date(transaction.created_at).toLocaleString()}
                         </p>
                       </div>
                       <div className={`text-sm font-medium ${transaction.type === 'credit' ? 'text-green-600' : 'text-red-600'}`}>
@@ -93,13 +93,13 @@ const WalletDetails: React.FC = () => {
               {earnedTransactions.length > 0 ? (
                 <div className="space-y-2 max-h-96 overflow-y-auto">
                   {earnedTransactions
-                    .sort((a, b) => b.timestamp - a.timestamp)
+                    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
                     .map((transaction) => (
                     <div key={transaction.id} className="flex justify-between p-3 border rounded-md">
                       <div>
                         <p className="font-medium">{transaction.description}</p>
                         <p className="text-xs text-gray-500">
-                          {new Date(transaction.timestamp).toLocaleString()}
+                          {new Date(transaction.created_at).toLocaleString()}
                         </p>
                       </div>
                       <div className="text-sm font-medium text-green-600">
@@ -117,13 +117,13 @@ const WalletDetails: React.FC = () => {
               {usedTransactions.length > 0 ? (
                 <div className="space-y-2 max-h-96 overflow-y-auto">
                   {usedTransactions
-                    .sort((a, b) => b.timestamp - a.timestamp)
+                    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
                     .map((transaction) => (
                     <div key={transaction.id} className="flex justify-between p-3 border rounded-md">
                       <div>
                         <p className="font-medium">{transaction.description}</p>
                         <p className="text-xs text-gray-500">
-                          {new Date(transaction.timestamp).toLocaleString()}
+                          {new Date(transaction.created_at).toLocaleString()}
                         </p>
                       </div>
                       <div className="text-sm font-medium text-red-600">

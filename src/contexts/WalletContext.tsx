@@ -12,13 +12,11 @@ interface WalletContextType {
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
 
 export const WalletProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const { phoneNumber, role } = useUser();
+  const { userId, phoneNumber, role } = useUser();
   const [wallet, setWallet] = useState<Wallet | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  const userId = phoneNumber;
-
-  const refreshWallet = () => {
+  const refreshWallet = async () => {
     if (!userId) {
       setWallet(null);
       setIsLoading(false);
@@ -27,7 +25,7 @@ export const WalletProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
     try {
       setIsLoading(true);
-      const walletData = getWallet(userId);
+      const walletData = await getWallet(userId);
       setWallet(walletData);
     } catch (error) {
       console.error("Error fetching wallet:", error);
@@ -37,7 +35,11 @@ export const WalletProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   };
 
   useEffect(() => {
-    refreshWallet();
+    const fetchWallet = async () => {
+      await refreshWallet();
+    };
+    
+    fetchWallet();
   }, [userId]);
 
   return (
