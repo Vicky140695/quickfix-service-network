@@ -9,7 +9,124 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      users: {
+        Row: {
+          address: string | null
+          created_at: string
+          id: string
+          is_verified: boolean
+          name: string | null
+          phone_number: string
+          role: string
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          id: string
+          is_verified?: boolean
+          name?: string | null
+          phone_number: string
+          role: string
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          id?: string
+          is_verified?: boolean
+          name?: string | null
+          phone_number?: string
+          role?: string
+        }
+        Relationships: []
+      }
+      wallet: {
+        Row: {
+          balance: number
+          created_at: string
+          id: string
+          referral_code: string
+          user_id: string
+        }
+        Insert: {
+          balance?: number
+          created_at?: string
+          id?: string
+          referral_code: string
+          user_id: string
+        }
+        Update: {
+          balance?: number
+          created_at?: string
+          id?: string
+          referral_code?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wallet_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      worker_profiles: {
+        Row: {
+          aadhaar_number: string | null
+          aadhaar_verified: boolean
+          agreed_to_terms: boolean
+          available: boolean
+          created_at: string
+          id: string
+          kyc_status: string
+          kyc_submitted_at: string | null
+          other_skill: string | null
+          payment_completed: boolean
+          skills: string[] | null
+          user_id: string
+          workers_count: number | null
+        }
+        Insert: {
+          aadhaar_number?: string | null
+          aadhaar_verified?: boolean
+          agreed_to_terms?: boolean
+          available?: boolean
+          created_at?: string
+          id?: string
+          kyc_status?: string
+          kyc_submitted_at?: string | null
+          other_skill?: string | null
+          payment_completed?: boolean
+          skills?: string[] | null
+          user_id: string
+          workers_count?: number | null
+        }
+        Update: {
+          aadhaar_number?: string | null
+          aadhaar_verified?: boolean
+          agreed_to_terms?: boolean
+          available?: boolean
+          created_at?: string
+          id?: string
+          kyc_status?: string
+          kyc_submitted_at?: string | null
+          other_skill?: string | null
+          payment_completed?: boolean
+          skills?: string[] | null
+          user_id?: string
+          workers_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "worker_profiles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
