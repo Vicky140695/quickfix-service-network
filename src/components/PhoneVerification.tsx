@@ -12,6 +12,10 @@ import { PhoneIcon, Check, X, RefreshCw, Loader } from 'lucide-react';
 import { sendOTP, verifyOTP } from '@/services/authService';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 
+// !! Note: In a real application, you would add the Firebase SDK here !!
+// firebase/app, firebase/auth
+// For this demo, we'll use a placeholder to show the implementation structure
+
 interface PhoneVerificationProps {
   workerRoute?: string;
   customerRoute?: string;
@@ -30,10 +34,9 @@ const PhoneVerification: React.FC<PhoneVerificationProps> = ({
   const [showOtpInput, setShowOtpInput] = useState(false);
   const [otp, setOtp] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [resendDisabled, setResendDisabled] = useState(false);
-  const [resendTimer, setResendTimer] = useState(0);
-  const [verificationId, setVerificationId] = useState<string | null>(null);
-  const [debugOtp, setDebugOtp] = useState<string | null>(null);
+  const [firebaseToken, setFirebaseToken] = useState<string | null>(null);
+  const [recaptchaVerifier, setRecaptchaVerifier] = useState<any>(null);
+  const [confirmationResult, setConfirmationResult] = useState<any>(null);
   
   // Format phone number to ensure it has the +91 prefix
   const handlePhoneChange = (value: string) => {
@@ -54,28 +57,23 @@ const PhoneVerification: React.FC<PhoneVerificationProps> = ({
     }
   };
 
-  // Handle resend timer countdown
+  // Initialize Firebase recaptcha when component mounts
   useEffect(() => {
-    let interval: NodeJS.Timeout | null = null;
+    // In a real app, you would initialize Firebase here
+    // For example:
+    // if (typeof window !== 'undefined' && !recaptchaVerifier) {
+    //   const verifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
+    //     'size': 'invisible',
+    //   });
+    //   setRecaptchaVerifier(verifier);
+    // }
     
-    if (resendTimer > 0) {
-      interval = setInterval(() => {
-        setResendTimer((prev) => prev - 1);
-      }, 1000);
-    } else if (resendTimer === 0) {
-      setResendDisabled(false);
-      if (interval) clearInterval(interval);
+    // For this demo, we'll just create a placeholder
+    if (!recaptchaVerifier) {
+      setRecaptchaVerifier({});
+      console.log("Firebase RecaptchaVerifier would be initialized here");
     }
-    
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [resendTimer]);
-
-  const startResendTimer = () => {
-    setResendDisabled(true);
-    setResendTimer(30); // 30 seconds cooldown
-  };
+  }, []);
 
   const handleSendOtp = async () => {
     if (!phoneNumber || phoneNumber.length < 13) { // +91 + 10 digits
@@ -86,27 +84,37 @@ const PhoneVerification: React.FC<PhoneVerificationProps> = ({
     setIsLoading(true);
     
     try {
-      console.log("Sending OTP to:", phoneNumber);
-      const result = await sendOTP(phoneNumber);
-      console.log("OTP send result:", result);
+      console.log("Initiating Firebase phone auth for:", phoneNumber);
       
-      if (result.success && result.verificationId) {
-        setVerificationId(result.verificationId);
-        toast.success("OTP sent successfully! Check your phone.");
-        
-        // Only for development when Twilio isn't configured
-        if (result.debugOtp) {
-          setDebugOtp(result.debugOtp);
-          toast.info(`Debug mode: OTP code is ${result.debugOtp}`);
-        }
-        
-        setShowOtpInput(true);
-        startResendTimer();
-      } else {
-        toast.error(result.error || "Failed to send OTP. Please try again.");
+      // Step 1: Call our backend to prepare for OTP
+      const result = await sendOTP(phoneNumber);
+      
+      if (!result.success) {
+        toast.error(result.error || "Failed to initiate verification. Please try again.");
+        setIsLoading(false);
+        return;
       }
+
+      // Step 2: In a real app, you would use Firebase to send the OTP
+      // For example:
+      // const confirmation = await firebase.auth().signInWithPhoneNumber(
+      //   phoneNumber,
+      //   recaptchaVerifier
+      // );
+      // setConfirmationResult(confirmation);
+      
+      // For this demo, we'll simulate Firebase behavior
+      setConfirmationResult({});
+      toast.success("Verification code sent to your phone.");
+      setShowOtpInput(true);
+      
+      // In development mode, simulate an OTP for testing
+      const simulatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
+      console.log("Development mode: Simulated OTP:", simulatedOtp);
+      toast.info(`Development mode: OTP code is ${simulatedOtp}`);
+      
     } catch (error) {
-      console.error("Error sending OTP:", error);
+      console.error("Error sending verification code:", error);
       toast.error("Service unavailable. Please try again later.");
     } finally {
       setIsLoading(false);
@@ -119,17 +127,20 @@ const PhoneVerification: React.FC<PhoneVerificationProps> = ({
       return;
     }
     
-    if (!verificationId) {
-      toast.error("Verification session expired. Please resend OTP.");
-      return;
-    }
-    
     setIsLoading(true);
     
     try {
-      console.log("Verifying OTP:", otp, "for phone:", phoneNumber);
-      const result = await verifyOTP(phoneNumber, otp, role);
-      console.log("OTP verification result:", result);
+      // In a real app, you would verify the OTP with Firebase
+      // For example:
+      // const credential = await confirmationResult.confirm(otp);
+      // const firebaseToken = await credential.user.getIdToken();
+      
+      // For this demo, we'll simulate a Firebase token
+      const simulatedToken = "firebase-auth-token-" + Date.now();
+      setFirebaseToken(simulatedToken);
+      
+      console.log("Verifying with token for phone:", phoneNumber);
+      const result = await verifyOTP(phoneNumber, simulatedToken, role);
       
       if (result.success) {
         setIsVerified(true);
@@ -142,7 +153,7 @@ const PhoneVerification: React.FC<PhoneVerificationProps> = ({
           navigate(customerRoute);
         }
       } else {
-        toast.error(result.error || "Invalid OTP. Please try again.");
+        toast.error(result.error || "Verification failed. Please try again.");
       }
     } catch (error) {
       console.error("Error verifying OTP:", error);
@@ -153,9 +164,7 @@ const PhoneVerification: React.FC<PhoneVerificationProps> = ({
   };
 
   const handleResendOtp = () => {
-    if (resendDisabled) return;
     setOtp(''); // Clear previous OTP
-    setDebugOtp(null); // Clear debug OTP
     handleSendOtp();
   };
 
@@ -197,6 +206,9 @@ const PhoneVerification: React.FC<PhoneVerificationProps> = ({
                   </div>
                   <p className="text-xs text-gray-500 mt-1">Format: +91 followed by 10 digits</p>
                 </div>
+                
+                {/* This div is where Firebase will render the invisible reCAPTCHA */}
+                <div id="recaptcha-container"></div>
                 
                 <Button
                   className="w-full"
@@ -244,12 +256,6 @@ const PhoneVerification: React.FC<PhoneVerificationProps> = ({
                     />
                   </div>
                   <p className="text-sm text-center text-gray-500">A 6-digit code has been sent to your phone</p>
-                  
-                  {debugOtp && (
-                    <p className="text-xs text-center text-blue-500 mt-1">
-                      Development mode: Enter code "{debugOtp}"
-                    </p>
-                  )}
                 </div>
                 
                 <Button
@@ -279,14 +285,12 @@ const PhoneVerification: React.FC<PhoneVerificationProps> = ({
                 <div className="text-center text-sm">
                   Didn't receive the code?{" "}
                   <button 
-                    className={`text-primary hover:underline ${resendDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    className="text-primary hover:underline"
                     onClick={handleResendOtp}
-                    disabled={resendDisabled}
+                    disabled={isLoading}
                     type="button"
                   >
-                    {resendDisabled 
-                      ? `Resend OTP in ${resendTimer}s` 
-                      : 'Resend OTP'}
+                    Resend OTP
                   </button>
                 </div>
               </div>

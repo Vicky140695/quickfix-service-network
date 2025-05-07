@@ -1,6 +1,7 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+// Firebase imports will go here in the actual implementation
+// We'll use a placeholder for now
 
 // Handle Supabase errors in a consistent way
 export const handleSupabaseError = (error: any) => {
@@ -9,11 +10,13 @@ export const handleSupabaseError = (error: any) => {
   return errorMessage;
 };
 
-// Phone authentication using our Supabase Edge Functions
+// Phone authentication using Firebase and our Supabase Edge Functions
 export const sendOTP = async (phoneNumber: string) => {
   try {
-    console.log('Attempting to send OTP to:', phoneNumber);
+    console.log('Preparing to send OTP to:', phoneNumber);
     
+    // With Firebase, we don't actually send the OTP from the backend
+    // The frontend will handle the OTP sending using Firebase recaptcha
     const { data, error } = await supabase.functions.invoke('send-otp', {
       body: { phoneNumber }
     });
@@ -22,55 +25,54 @@ export const sendOTP = async (phoneNumber: string) => {
       console.error('Error invoking send-otp function:', error);
       return {
         success: false,
-        error: error.message || 'Failed to send OTP. Service currently unavailable.'
+        error: error.message || 'Failed to prepare OTP. Service currently unavailable.'
       };
     }
     
     if (!data.success) {
       return {
         success: false,
-        error: data.error || 'Failed to send OTP. Please check your phone number and try again.'
+        error: data.error || 'Failed to prepare for OTP. Please check your phone number and try again.'
       };
     }
     
     return {
       success: true,
-      verificationId: data.verificationId,
-      debugOtp: data.otp // This will only be returned in development when Twilio is not configured
+      phoneNumber: data.phoneNumber
     };
   } catch (error) {
-    console.error('Error sending OTP:', error);
+    console.error('Error initiating OTP:', error);
     return { 
       success: false, 
-      error: 'Failed to send OTP. Service currently unavailable.' 
+      error: 'Failed to initiate OTP. Service currently unavailable.' 
     };
   }
 };
 
 export const verifyOTP = async (
   phoneNumber: string, 
-  otp: string, 
+  firebaseToken: string, // Changed from OTP to Firebase token
   role: 'customer' | 'worker' | 'admin' | null
 ) => {
   try {
-    console.log(`OTP verification attempt for ${phoneNumber}`);
+    console.log(`Firebase token verification attempt for ${phoneNumber}`);
     
     const { data, error } = await supabase.functions.invoke('verify-otp', {
-      body: { phoneNumber, otp, role }
+      body: { phoneNumber, firebaseToken, role } // Changed parameter name
     });
     
     if (error) {
       console.error('Error invoking verify-otp function:', error);
       return {
         success: false,
-        error: error.message || 'Failed to verify OTP. Service currently unavailable.'
+        error: error.message || 'Failed to verify phone. Service currently unavailable.'
       };
     }
     
     if (!data.success) {
       return {
         success: false,
-        error: data.error || 'Invalid OTP. Please check and try again.'
+        error: data.error || 'Invalid verification. Please check and try again.'
       };
     }
 
@@ -102,10 +104,10 @@ export const verifyOTP = async (
       isNewUser: data.isNewUser
     };
   } catch (error) {
-    console.error('Error verifying OTP:', error);
+    console.error('Error verifying phone:', error);
     return { 
       success: false, 
-      error: 'Failed to verify OTP. Please try again.' 
+      error: 'Failed to verify phone. Please try again.' 
     };
   }
 };
