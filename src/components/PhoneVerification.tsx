@@ -33,6 +33,7 @@ const PhoneVerification: React.FC<PhoneVerificationProps> = ({
   const [resendDisabled, setResendDisabled] = useState(false);
   const [resendTimer, setResendTimer] = useState(0);
   const [verificationId, setVerificationId] = useState<string | null>(null);
+  const [debugOtp, setDebugOtp] = useState<string | null>(null);
   
   // Format phone number to ensure it has the +91 prefix
   const handlePhoneChange = (value: string) => {
@@ -92,7 +93,13 @@ const PhoneVerification: React.FC<PhoneVerificationProps> = ({
       if (result.success && result.verificationId) {
         setVerificationId(result.verificationId);
         toast.success("OTP sent successfully! Check your phone.");
-        toast.info("For testing: OTP code is 123456");
+        
+        // Only for development when Twilio isn't configured
+        if (result.debugOtp) {
+          setDebugOtp(result.debugOtp);
+          toast.info(`Debug mode: OTP code is ${result.debugOtp}`);
+        }
+        
         setShowOtpInput(true);
         startResendTimer();
       } else {
@@ -148,6 +155,7 @@ const PhoneVerification: React.FC<PhoneVerificationProps> = ({
   const handleResendOtp = () => {
     if (resendDisabled) return;
     setOtp(''); // Clear previous OTP
+    setDebugOtp(null); // Clear debug OTP
     handleSendOtp();
   };
 
@@ -214,13 +222,6 @@ const PhoneVerification: React.FC<PhoneVerificationProps> = ({
                     {t('do_it_later')}
                   </Button>
                 )}
-
-                <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-                  <p className="text-xs text-yellow-700">
-                    <strong>Developer Note:</strong> This is a demonstration of OTP functionality. 
-                    For testing purposes, the OTP code "123456" will work.
-                  </p>
-                </div>
               </div>
             ) : (
               <div className="space-y-6">
@@ -243,9 +244,12 @@ const PhoneVerification: React.FC<PhoneVerificationProps> = ({
                     />
                   </div>
                   <p className="text-sm text-center text-gray-500">A 6-digit code has been sent to your phone</p>
-                  <p className="text-xs text-center text-blue-500 mt-1">
-                    For testing: Enter code "123456"
-                  </p>
+                  
+                  {debugOtp && (
+                    <p className="text-xs text-center text-blue-500 mt-1">
+                      Development mode: Enter code "{debugOtp}"
+                    </p>
+                  )}
                 </div>
                 
                 <Button
