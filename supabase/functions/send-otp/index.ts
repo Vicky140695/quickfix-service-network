@@ -1,5 +1,6 @@
 
 import { serve } from "https://deno.land/std@0.170.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
 
 // Twilio Helper
 const twilioAccountSid = Deno.env.get("TWILIO_ACCOUNT_SID");
@@ -14,6 +15,23 @@ const corsHeaders = {
 interface RequestBody {
   phoneNumber: string;
 }
+
+// Create a simple in-memory store with expiry
+// In production, you would use a proper database
+const otpStore = new Map();
+
+// Function to clear expired OTPs
+const clearExpiredOtps = () => {
+  const now = Date.now();
+  for (const [key, value] of otpStore.entries()) {
+    if (value.expiry < now) {
+      otpStore.delete(key);
+    }
+  }
+};
+
+// Clean up expired OTPs every minute
+setInterval(clearExpiredOtps, 60000);
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -35,23 +53,25 @@ serve(async (req) => {
     // Generate a random 6-digit OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-    // Store the OTP in a hash map with the phone number as the key
-    // In a real production app, you would store this in a database with TTL
-    // For simplicity, we're using KV - which is a simple key-value store
-    const kv = await Deno.openKv();
-    
-    // Set the OTP with a 5-minute expiry
+    // Store the OTP with the phone number as the key
+    // Set a 5-minute expiry
     const expiryMs = 5 * 60 * 1000; // 5 minutes
     const expiry = new Date(Date.now() + expiryMs);
     
-    await kv.set(["otp", phoneNumber], {
+    // Store OTP in our in-memory map
+    otpStore.set(phoneNumber, {
       code: otp,
       createdAt: Date.now(),
       expiry: expiry.getTime()
-    }, { expireIn: expiryMs });
+    });
+    
+    // Schedule automatic deletion after expiry
+    setTimeout(() => {
+      otpStore.delete(phoneNumber);
+    }, expiryMs);
 
     if (!twilioAccountSid || !twilioAuthToken || !twilioPhoneNumber) {
-      console.error("Twilio configuration is missing");
+      console.log("Twilio configuration is missing");
       return new Response(
         JSON.stringify({
           success: true, 
