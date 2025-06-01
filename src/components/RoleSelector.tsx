@@ -13,8 +13,10 @@ const RoleSelector: React.FC = () => {
   const navigate = useNavigate();
 
   const handleRoleSelect = (selectedRole: 'customer' | 'worker') => {
+    console.log('Role selected:', selectedRole);
     setRole(selectedRole);
     
+    // Navigate to phone verification immediately after role selection
     if (selectedRole === 'worker') {
       navigate('/worker/phone-verification');
     } else {

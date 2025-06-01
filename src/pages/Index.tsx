@@ -9,6 +9,8 @@ const Index = () => {
   const navigate = useNavigate();
   
   useEffect(() => {
+    console.log('Index page - isLoading:', isLoading, 'isVerified:', isVerified, 'role:', role);
+    
     if (!isLoading) {
       if (isVerified && role === 'customer') {
         navigate('/customer/dashboard');
@@ -16,8 +18,16 @@ const Index = () => {
         navigate('/worker/dashboard');
       } else if (isVerified && role === 'admin') {
         navigate('/admin/dashboard');
-      } else {
+      } else if (!isVerified && !role) {
+        // If user is not verified and has no role, start from language selection
         navigate('/language');
+      } else if (!isVerified && role) {
+        // If user has a role but is not verified, go to phone verification
+        if (role === 'worker') {
+          navigate('/worker/phone-verification');
+        } else if (role === 'customer') {
+          navigate('/customer/phone-verification');
+        }
       }
     }
   }, [isVerified, role, isLoading, navigate]);
