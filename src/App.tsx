@@ -67,7 +67,7 @@ const ProtectedRoute = ({ children, requiredRole }: { children: JSX.Element, req
   }
   
   if (!isVerified) {
-    return <Navigate to="/language" replace />;
+    return <Navigate to="/" replace />;
   }
   
   if (requiredRole && role !== requiredRole) {
@@ -95,7 +95,7 @@ const PublicOnlyRoute = ({ children }: { children: JSX.Element }) => {
     return <div className="flex items-center justify-center h-screen">Loading...</div>;
   }
   
-  // Redirect authenticated users to their respective dashboards
+  // Only redirect if user is fully verified
   if (isVerified) {
     if (role === 'customer') {
       return <Navigate to="/customer/dashboard" replace />;
@@ -104,6 +104,33 @@ const PublicOnlyRoute = ({ children }: { children: JSX.Element }) => {
     } else if (role === 'admin') {
       return <Navigate to="/admin/dashboard" replace />;
     }
+  }
+  
+  return children;
+};
+
+// Special route protection for phone verification pages
+const PhoneVerificationRoute = ({ children }: { children: JSX.Element }) => {
+  const { isVerified, role, isLoading } = useUser();
+  
+  if (isLoading) {
+    return <div className="flex items-center justify-center h-screen">Loading...</div>;
+  }
+  
+  // If already verified, redirect to dashboard
+  if (isVerified) {
+    if (role === 'customer') {
+      return <Navigate to="/customer/dashboard" replace />;
+    } else if (role === 'worker') {
+      return <Navigate to="/worker/dashboard" replace />;
+    } else if (role === 'admin') {
+      return <Navigate to="/admin/dashboard" replace />;
+    }
+  }
+  
+  // If no role selected, go back to role selection
+  if (!role) {
+    return <Navigate to="/role-selection" replace />;
   }
   
   return children;
@@ -154,13 +181,20 @@ const App = () => (
                 </PublicOnlyRoute>
               } />
               
-              {/* Worker Routes */}
+              {/* Phone Verification Routes - Special handling */}
               <Route path="/worker/phone-verification" element={
-                <PublicOnlyRoute>
+                <PhoneVerificationRoute>
                   <WorkerPhoneVerificationPage />
-                </PublicOnlyRoute>
+                </PhoneVerificationRoute>
               } />
               
+              <Route path="/customer/phone-verification" element={
+                <PhoneVerificationRoute>
+                  <CustomerPhoneVerificationPage />
+                </PhoneVerificationRoute>
+              } />
+              
+              {/* Worker Routes */}
               <Route path="/worker/registration" element={
                 <ProtectedRoute requiredRole="worker">
                   <WorkerRegistrationPage />
@@ -204,12 +238,6 @@ const App = () => (
               } />
               
               {/* Customer Routes */}
-              <Route path="/customer/phone-verification" element={
-                <PublicOnlyRoute>
-                  <CustomerPhoneVerificationPage />
-                </PublicOnlyRoute>
-              } />
-              
               <Route path="/customer/dashboard" element={
                 <ProtectedRoute requiredRole="customer">
                   <CustomerDashboardPage />
