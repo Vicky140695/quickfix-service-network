@@ -255,14 +255,16 @@ const PhoneVerification: React.FC<PhoneVerificationProps> = ({
                       maxLength={6}
                       value={otp}
                       onChange={setOtp}
-                      render={({ slots }) => (
-                        <InputOTPGroup className="gap-2">
-                          {slots.map((slot, index) => (
-                            <InputOTPSlot key={index} {...slot} index={index} />
-                          ))}
-                        </InputOTPGroup>
-                      )}
-                    />
+                    >
+                      <InputOTPGroup className="gap-2">
+                        <InputOTPSlot index={0} />
+                        <InputOTPSlot index={1} />
+                        <InputOTPSlot index={2} />
+                        <InputOTPSlot index={3} />
+                        <InputOTPSlot index={4} />
+                        <InputOTPSlot index={5} />
+                      </InputOTPGroup>
+                    </InputOTP>
                   </div>
                   <p className="text-sm text-center text-gray-500">A 6-digit code has been sent to your phone</p>
                 </div>

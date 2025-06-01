@@ -4,8 +4,16 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 
 const SupabaseStatusBanner: React.FC = () => {
-  // Only show if environment variables are missing
-  if (import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY) {
+  // Check if we have the real Supabase credentials configured
+  const hasSupabaseUrl = import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_URL !== 'https://your-project-url.supabase.co';
+  const hasSupabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY && import.meta.env.VITE_SUPABASE_ANON_KEY !== 'your-anon-key';
+  
+  // Also check the integrated Supabase credentials
+  const hasIntegratedSupabase = window.location.hostname.includes('lovableproject.com') || 
+                               window.location.hostname.includes('lovable.app');
+
+  // Only show if environment variables are missing AND we don't have integrated Supabase
+  if ((hasSupabaseUrl && hasSupabaseKey) || hasIntegratedSupabase) {
     return null;
   }
 
