@@ -11,10 +11,8 @@ import { toast } from 'sonner';
 import { PhoneIcon, Check, X, RefreshCw, Loader } from 'lucide-react';
 import { sendOTP, verifyOTP } from '@/services/authService';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
-
-// !! Note: In a real application, you would add the Firebase SDK here !!
-// firebase/app, firebase/auth
-// For this demo, we'll use a placeholder to show the implementation structure
+import { RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
+import { firebaseAuth } from '@/integrations/firebase/client';
 
 interface PhoneVerificationProps {
   workerRoute?: string;
@@ -34,8 +32,7 @@ const PhoneVerification: React.FC<PhoneVerificationProps> = ({
   const [showOtpInput, setShowOtpInput] = useState(false);
   const [otp, setOtp] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [firebaseToken, setFirebaseToken] = useState<string | null>(null);
-  const [recaptchaVerifier, setRecaptchaVerifier] = useState<any>(null);
+  const [recaptchaVerifier, setRecaptchaVerifier] = useState<RecaptchaVerifier | null>(null);
   const [confirmationResult, setConfirmationResult] = useState<any>(null);
   
   // Format phone number to ensure it has the +91 prefix
@@ -59,25 +56,30 @@ const PhoneVerification: React.FC<PhoneVerificationProps> = ({
 
   // Initialize Firebase recaptcha when component mounts
   useEffect(() => {
-    // In a real app, you would initialize Firebase here
-    // For example:
-    // if (typeof window !== 'undefined' && !recaptchaVerifier) {
-    //   const verifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
-    //     'size': 'invisible',
-    //   });
-    //   setRecaptchaVerifier(verifier);
-    // }
-    
-    // For this demo, we'll just create a placeholder
-    if (!recaptchaVerifier) {
-      setRecaptchaVerifier({});
-      console.log("Firebase RecaptchaVerifier would be initialized here");
+    if (typeof window !== 'undefined' && !recaptchaVerifier) {
+      try {
+        const verifier = new RecaptchaVerifier(firebaseAuth, 'recaptcha-container', {
+          'size': 'invisible',
+          'callback': (response: any) => {
+            console.log('reCAPTCHA solved');
+          }
+        });
+        setRecaptchaVerifier(verifier);
+        console.log("Firebase RecaptchaVerifier initialized");
+      } catch (error) {
+        console.error("Error initializing RecaptchaVerifier:", error);
+      }
     }
   }, []);
 
   const handleSendOtp = async () => {
     if (!phoneNumber || phoneNumber.length < 13) { // +91 + 10 digits
       toast.error("Please enter a valid phone number");
+      return;
+    }
+    
+    if (!recaptchaVerifier) {
+      toast.error("reCAPTCHA not initialized. Please refresh and try again.");
       return;
     }
     
@@ -95,27 +97,26 @@ const PhoneVerification: React.FC<PhoneVerificationProps> = ({
         return;
       }
 
-      // Step 2: In a real app, you would use Firebase to send the OTP
-      // For example:
-      // const confirmation = await firebase.auth().signInWithPhoneNumber(
-      //   phoneNumber,
-      //   recaptchaVerifier
-      // );
-      // setConfirmationResult(confirmation);
+      // Step 2: Use Firebase to send the OTP
+      const confirmation = await signInWithPhoneNumber(
+        firebaseAuth,
+        phoneNumber,
+        recaptchaVerifier
+      );
       
-      // For this demo, we'll simulate Firebase behavior
-      setConfirmationResult({});
+      setConfirmationResult(confirmation);
       toast.success("Verification code sent to your phone.");
       setShowOtpInput(true);
       
-      // In development mode, simulate an OTP for testing
-      const simulatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
-      console.log("Development mode: Simulated OTP:", simulatedOtp);
-      toast.info(`Development mode: OTP code is ${simulatedOtp}`);
-      
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error sending verification code:", error);
-      toast.error("Service unavailable. Please try again later.");
+      if (error.code === 'auth/too-many-requests') {
+        toast.error("Too many requests. Please try again later.");
+      } else if (error.code === 'auth/invalid-phone-number') {
+        toast.error("Invalid phone number format.");
+      } else {
+        toast.error("Failed to send verification code. Please try again.");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -127,20 +128,20 @@ const PhoneVerification: React.FC<PhoneVerificationProps> = ({
       return;
     }
     
+    if (!confirmationResult) {
+      toast.error("No verification session found. Please resend OTP.");
+      return;
+    }
+    
     setIsLoading(true);
     
     try {
-      // In a real app, you would verify the OTP with Firebase
-      // For example:
-      // const credential = await confirmationResult.confirm(otp);
-      // const firebaseToken = await credential.user.getIdToken();
+      // Verify the OTP with Firebase
+      const credential = await confirmationResult.confirm(otp);
+      const firebaseToken = await credential.user.getIdToken();
       
-      // For this demo, we'll simulate a Firebase token
-      const simulatedToken = "firebase-auth-token-" + Date.now();
-      setFirebaseToken(simulatedToken);
-      
-      console.log("Verifying with token for phone:", phoneNumber);
-      const result = await verifyOTP(phoneNumber, simulatedToken, role);
+      console.log("Verifying with Firebase token for phone:", phoneNumber);
+      const result = await verifyOTP(phoneNumber, firebaseToken, role);
       
       if (result.success) {
         setIsVerified(true);
@@ -155,9 +156,15 @@ const PhoneVerification: React.FC<PhoneVerificationProps> = ({
       } else {
         toast.error(result.error || "Verification failed. Please try again.");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error verifying OTP:", error);
-      toast.error("Verification failed. Please try again.");
+      if (error.code === 'auth/invalid-verification-code') {
+        toast.error("Invalid verification code. Please check and try again.");
+      } else if (error.code === 'auth/code-expired') {
+        toast.error("Verification code has expired. Please resend OTP.");
+      } else {
+        toast.error("Verification failed. Please try again.");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -165,6 +172,8 @@ const PhoneVerification: React.FC<PhoneVerificationProps> = ({
 
   const handleResendOtp = () => {
     setOtp(''); // Clear previous OTP
+    setShowOtpInput(false);
+    setConfirmationResult(null);
     handleSendOtp();
   };
 
@@ -207,7 +216,7 @@ const PhoneVerification: React.FC<PhoneVerificationProps> = ({
                   <p className="text-xs text-gray-500 mt-1">Format: +91 followed by 10 digits</p>
                 </div>
                 
-                {/* This div is where Firebase will render the invisible reCAPTCHA */}
+                {/* Firebase reCAPTCHA container */}
                 <div id="recaptcha-container"></div>
                 
                 <Button
