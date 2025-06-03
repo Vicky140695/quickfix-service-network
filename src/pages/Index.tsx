@@ -1,15 +1,21 @@
 
 import { useEffect } from 'react';
-import { Navigate, useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { useUser } from '../contexts/UserContext';
 import { Loader } from 'lucide-react';
 
 const Index = () => {
   const { isVerified, role, isLoading } = useUser();
   const navigate = useNavigate();
+  const location = useLocation();
   
   useEffect(() => {
-    console.log('Index page - isLoading:', isLoading, 'isVerified:', isVerified, 'role:', role);
+    console.log('Index page - isLoading:', isLoading, 'isVerified:', isVerified, 'role:', role, 'pathname:', location.pathname);
+    
+    // Only handle navigation if we're actually on the index page
+    if (location.pathname !== '/') {
+      return;
+    }
     
     if (!isLoading) {
       if (isVerified && role === 'customer') {
@@ -30,15 +36,21 @@ const Index = () => {
         }
       }
     }
-  }, [isVerified, role, isLoading, navigate]);
+  }, [isVerified, role, isLoading, navigate, location.pathname]);
   
-  if (isLoading) {
+  // Only show loading when we're on the actual index page
+  if (location.pathname === '/' && isLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen">
         <Loader className="h-12 w-12 animate-spin text-primary" />
         <p className="mt-4 text-lg text-gray-600">Loading...</p>
       </div>
     );
+  }
+  
+  // If we're not on the index page, don't render anything (let the router handle it)
+  if (location.pathname !== '/') {
+    return null;
   }
   
   return null; // Redirects are handled in useEffect
