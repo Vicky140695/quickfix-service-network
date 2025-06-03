@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -109,33 +110,6 @@ const PublicOnlyRoute = ({ children }: { children: JSX.Element }) => {
   return children;
 };
 
-// Special route protection for phone verification pages
-const PhoneVerificationRoute = ({ children }: { children: JSX.Element }) => {
-  const { isVerified, role, isLoading } = useUser();
-  
-  if (isLoading) {
-    return <div className="flex items-center justify-center h-screen">Loading...</div>;
-  }
-  
-  // If already verified, redirect to dashboard
-  if (isVerified) {
-    if (role === 'customer') {
-      return <Navigate to="/customer/dashboard" replace />;
-    } else if (role === 'worker') {
-      return <Navigate to="/worker/dashboard" replace />;
-    } else if (role === 'admin') {
-      return <Navigate to="/admin/dashboard" replace />;
-    }
-  }
-  
-  // If no role selected, go back to role selection
-  if (!role) {
-    return <Navigate to="/role-selection" replace />;
-  }
-  
-  return children;
-};
-
 // Check environment variables
 const EnvChecker = () => {
   useEffect(() => {
@@ -181,18 +155,9 @@ const App = () => (
                 </PublicOnlyRoute>
               } />
               
-              {/* Phone Verification Routes - Special handling */}
-              <Route path="/worker/phone-verification" element={
-                <PhoneVerificationRoute>
-                  <WorkerPhoneVerificationPage />
-                </PhoneVerificationRoute>
-              } />
-              
-              <Route path="/customer/phone-verification" element={
-                <PhoneVerificationRoute>
-                  <CustomerPhoneVerificationPage />
-                </PhoneVerificationRoute>
-              } />
+              {/* Phone Verification Routes - No additional protection needed */}
+              <Route path="/worker/phone-verification" element={<WorkerPhoneVerificationPage />} />
+              <Route path="/customer/phone-verification" element={<CustomerPhoneVerificationPage />} />
               
               {/* Worker Routes */}
               <Route path="/worker/registration" element={
