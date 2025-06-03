@@ -50,20 +50,23 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [userId, setUserId] = useState<string | null>(null);
 
-  // Check for existing session on load
+  // Simple initialization - check for existing session without interference
   useEffect(() => {
-    const checkSession = async () => {
+    const initializeAuth = async () => {
       try {
         setIsLoading(true);
+        console.log('UserContext: Initializing auth state');
         
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
           console.error('Error checking session:', error);
+          setIsLoading(false);
           return;
         }
         
         if (session) {
+          console.log('UserContext: Found existing session');
           setIsVerified(true);
           setUserId(session.user.id);
           
@@ -76,10 +79,12 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
             
           if (userError) {
             console.error('Error fetching user data:', userError);
+            setIsLoading(false);
             return;
           }
           
           if (userData) {
+            console.log('UserContext: Setting user data', userData);
             setRole(userData.role);
             setPhoneNumber(userData.phone_number);
             
@@ -112,33 +117,40 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
             
             setUserProfile(mappedProfile);
           }
+        } else {
+          console.log('UserContext: No existing session found');
         }
       } catch (error) {
-        console.error('Session check failed:', error);
+        console.error('UserContext: Session check failed:', error);
       } finally {
         setIsLoading(false);
       }
     };
     
-    checkSession();
+    initializeAuth();
     
-    // Set up auth state listener
+    // Set up auth state listener for sign in/out events only
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('UserContext: Auth state changed', event);
+      
       if (event === 'SIGNED_OUT') {
+        console.log('UserContext: User signed out');
         resetUser();
       } else if (event === 'SIGNED_IN' && session) {
+        console.log('UserContext: User signed in');
         setIsVerified(true);
         setUserId(session.user.id);
-        // Full user data will be fetched in the checkSession function
+        // Note: Full user data fetching will happen on next page load/refresh
       }
     });
     
     return () => {
       authListener.subscription?.unsubscribe();
     };
-  }, []);
+  }, []); // Empty dependency array - only run once on mount
 
   const resetUser = () => {
+    console.log('UserContext: Resetting user state');
     setRole(null);
     setPhoneNumber('');
     setIsVerified(false);

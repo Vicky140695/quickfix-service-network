@@ -1,6 +1,6 @@
 
 import { useEffect } from 'react';
-import { Navigate, useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useUser } from '../contexts/UserContext';
 import { Loader } from 'lucide-react';
 
@@ -10,29 +10,32 @@ const Index = () => {
   const location = useLocation();
   
   useEffect(() => {
-    console.log('Index page - isLoading:', isLoading, 'isVerified:', isVerified, 'role:', role, 'pathname:', location.pathname);
-    
     // Only handle navigation if we're actually on the index page
     if (location.pathname !== '/') {
       return;
     }
     
+    console.log('Index page navigation - isLoading:', isLoading, 'isVerified:', isVerified, 'role:', role);
+    
     if (!isLoading) {
       if (isVerified && role === 'customer') {
-        navigate('/customer/dashboard');
+        console.log('Navigating to customer dashboard');
+        navigate('/customer/dashboard', { replace: true });
       } else if (isVerified && role === 'worker') {
-        navigate('/worker/dashboard');
+        console.log('Navigating to worker dashboard');
+        navigate('/worker/dashboard', { replace: true });
       } else if (isVerified && role === 'admin') {
-        navigate('/admin/dashboard');
+        console.log('Navigating to admin dashboard');
+        navigate('/admin/dashboard', { replace: true });
       } else if (!isVerified && !role) {
-        // If user is not verified and has no role, start from language selection
-        navigate('/language');
+        console.log('No role, navigating to language selection');
+        navigate('/language', { replace: true });
       } else if (!isVerified && role) {
-        // If user has a role but is not verified, go to phone verification
+        console.log('Has role but not verified, navigating to phone verification');
         if (role === 'worker') {
-          navigate('/worker/phone-verification');
+          navigate('/worker/phone-verification', { replace: true });
         } else if (role === 'customer') {
-          navigate('/customer/phone-verification');
+          navigate('/customer/phone-verification', { replace: true });
         }
       }
     }
@@ -48,7 +51,7 @@ const Index = () => {
     );
   }
   
-  // If we're not on the index page, don't render anything (let the router handle it)
+  // If we're not on the index page, don't render anything
   if (location.pathname !== '/') {
     return null;
   }

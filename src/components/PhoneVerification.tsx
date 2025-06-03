@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useUser } from '../contexts/UserContext';
 import { Card, CardContent } from '@/components/ui/card';
@@ -28,12 +28,31 @@ const PhoneVerification: React.FC<PhoneVerificationProps> = ({
   const { t } = useLanguage();
   const { role, phoneNumber, setPhoneNumber, setIsVerified } = useUser();
   const navigate = useNavigate();
+  const location = useLocation();
   
   const [showOtpInput, setShowOtpInput] = useState(false);
   const [otp, setOtp] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [recaptchaVerifier, setRecaptchaVerifier] = useState<RecaptchaVerifier | null>(null);
   const [confirmationResult, setConfirmationResult] = useState<any>(null);
+  
+  // Initialize Firebase recaptcha when component mounts
+  useEffect(() => {
+    if (typeof window !== 'undefined' && !recaptchaVerifier) {
+      try {
+        const verifier = new RecaptchaVerifier(firebaseAuth, 'recaptcha-container', {
+          'size': 'invisible',
+          'callback': (response: any) => {
+            console.log('reCAPTCHA solved');
+          }
+        });
+        setRecaptchaVerifier(verifier);
+        console.log("Firebase RecaptchaVerifier initialized");
+      } catch (error) {
+        console.error("Error initializing RecaptchaVerifier:", error);
+      }
+    }
+  }, []);
   
   // Format phone number to ensure it has the +91 prefix
   const handlePhoneChange = (value: string) => {
@@ -54,24 +73,6 @@ const PhoneVerification: React.FC<PhoneVerificationProps> = ({
     }
   };
 
-  // Initialize Firebase recaptcha when component mounts
-  useEffect(() => {
-    if (typeof window !== 'undefined' && !recaptchaVerifier) {
-      try {
-        const verifier = new RecaptchaVerifier(firebaseAuth, 'recaptcha-container', {
-          'size': 'invisible',
-          'callback': (response: any) => {
-            console.log('reCAPTCHA solved');
-          }
-        });
-        setRecaptchaVerifier(verifier);
-        console.log("Firebase RecaptchaVerifier initialized");
-      } catch (error) {
-        console.error("Error initializing RecaptchaVerifier:", error);
-      }
-    }
-  }, []);
-
   const handleSendOtp = async () => {
     if (!phoneNumber || phoneNumber.length < 13) { // +91 + 10 digits
       toast.error("Please enter a valid phone number");
@@ -86,7 +87,7 @@ const PhoneVerification: React.FC<PhoneVerificationProps> = ({
     setIsLoading(true);
     
     try {
-      console.log("Initiating Firebase phone auth for:", phoneNumber);
+      console.log("PhoneVerification: Initiating Firebase phone auth for:", phoneNumber);
       
       // Step 1: Call our backend to prepare for OTP
       const result = await sendOTP(phoneNumber);
@@ -136,23 +137,31 @@ const PhoneVerification: React.FC<PhoneVerificationProps> = ({
     setIsLoading(true);
     
     try {
+      console.log("PhoneVerification: Verifying OTP");
+      
       // Verify the OTP with Firebase
       const credential = await confirmationResult.confirm(otp);
       const firebaseToken = await credential.user.getIdToken();
       
-      console.log("Verifying with Firebase token for phone:", phoneNumber);
+      console.log("PhoneVerification: Verifying with backend for phone:", phoneNumber);
       const result = await verifyOTP(phoneNumber, firebaseToken, role);
       
       if (result.success) {
+        console.log("PhoneVerification: Verification successful, updating state");
         setIsVerified(true);
         toast.success("Phone number verified successfully!");
         
-        // Navigate based on role
-        if (role === 'worker') {
-          navigate(workerRoute);
-        } else {
-          navigate(customerRoute);
-        }
+        // Small delay to ensure state is updated before navigation
+        setTimeout(() => {
+          // Navigate based on role
+          if (role === 'worker') {
+            console.log("PhoneVerification: Navigating to worker route");
+            navigate(workerRoute, { replace: true });
+          } else {
+            console.log("PhoneVerification: Navigating to customer route");
+            navigate(customerRoute, { replace: true });
+          }
+        }, 100);
       } else {
         toast.error(result.error || "Verification failed. Please try again.");
       }
@@ -179,7 +188,7 @@ const PhoneVerification: React.FC<PhoneVerificationProps> = ({
 
   const handleSkip = () => {
     if (skipRoute) {
-      navigate(skipRoute);
+      navigate(skipRoute, { replace: true });
     }
   };
 

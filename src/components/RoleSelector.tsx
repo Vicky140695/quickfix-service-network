@@ -13,15 +13,19 @@ const RoleSelector: React.FC = () => {
   const navigate = useNavigate();
 
   const handleRoleSelect = (selectedRole: 'customer' | 'worker') => {
-    console.log('Role selected:', selectedRole);
+    console.log('RoleSelector: Role selected:', selectedRole);
     setRole(selectedRole);
     
     // Navigate to phone verification immediately after role selection
-    if (selectedRole === 'worker') {
-      navigate('/worker/phone-verification');
-    } else {
-      navigate('/customer/phone-verification');
-    }
+    setTimeout(() => {
+      if (selectedRole === 'worker') {
+        console.log('RoleSelector: Navigating to worker phone verification');
+        navigate('/worker/phone-verification', { replace: true });
+      } else {
+        console.log('RoleSelector: Navigating to customer phone verification');
+        navigate('/customer/phone-verification', { replace: true });
+      }
+    }, 100);
   };
 
   return (
